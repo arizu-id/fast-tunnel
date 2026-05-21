@@ -1,8 +1,9 @@
 <?php
-// Suppress deprecated warnings and minor notices from output to ensure clean HTML rendering
 error_reporting(E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED & ~E_NOTICE & ~E_WARNING);
-ini_set('display_errors', '0');
-
+ini_set('display_errors','0');
+require_once __DIR__.'/config.php';
+require_once __DIR__.'/backend/Auth.php';
+Auth::requireAuth();
 $activePlugins = [];
 if (is_dir(__DIR__ . '/plugins')) {
     $dirs = glob(__DIR__ . '/plugins/*', GLOB_ONLYDIR);
@@ -18,6 +19,7 @@ if (is_dir(__DIR__ . '/plugins')) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="<?php echo Auth::csrfToken(); ?>">
     <title>Fast Tunnel</title>
     <script>
         window.FAST_TUNNEL_PLUGINS = <?php echo json_encode($activePlugins); ?>;
@@ -82,6 +84,11 @@ if (is_dir(__DIR__ . '/plugins')) {
                                 <i class="bi bi-person-circle text-muted"></i> About Developer
                             </button>
                         </li>
+                        <li>
+                            <button class="dropdown-item d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#editCredentialsModal" id="btnTriggerCredentialsModal">
+                                <i class="bi bi-key text-muted"></i> Edit Credentials
+                            </button>
+                        </li>
                         <li><hr class="dropdown-divider border-secondary my-1"></li>
                         <li>
                             <button class="dropdown-item d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#privacyPolicyModal">
@@ -91,6 +98,12 @@ if (is_dir(__DIR__ . '/plugins')) {
                         <li>
                             <button class="dropdown-item d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#termsModal">
                                 <i class="bi bi-file-text text-muted"></i> Terms &amp; Conditions
+                            </button>
+                        </li>
+                        <li><hr class="dropdown-divider border-secondary my-1"></li>
+                        <li>
+                            <button class="dropdown-item d-flex align-items-center gap-2 text-danger" id="btnLogout">
+                                <i class="bi bi-box-arrow-right"></i> Logout
                             </button>
                         </li>
                     </ul>
@@ -134,16 +147,11 @@ if (is_dir(__DIR__ . '/plugins')) {
                 </div>
 
                 <div class="db-sidebar border-end border-secondary d-none flex-column" id="dbSidebar" style="width: 260px; background-color: #18181b;">
-                    <div class="p-2 border-bottom border-secondary d-flex flex-column bg-dark panel-header" style="height: auto;">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <span class="small text-muted text-uppercase fw-semibold ms-2" style="letter-spacing: 0.5px;">Database Explorer</span>
-                            <button class="btn btn-sm btn-icon text-danger btn-db-disconnect" style="padding: 2px 6px;" title="Disconnect"><i class="bi bi-power"></i></button>
-                        </div>
-                        <select class="form-select form-select-sm bg-darker text-light border-secondary" id="dbSelector" style="font-size: 0.8rem; border-radius: 6px;">
-                            <option value="">-- Select Database --</option>
-                        </select>
+                    <div class="p-2 border-bottom border-secondary d-flex justify-content-between align-items-center bg-dark panel-header">
+                        <span class="small text-muted text-uppercase fw-semibold ms-2" style="letter-spacing: 0.5px;">Database Explorer</span>
+                        <button class="btn btn-sm btn-icon text-danger btn-db-disconnect" style="padding: 2px 6px;" title="Disconnect"><i class="bi bi-power"></i></button>
                     </div>
-                    <div class="flex-grow-1 overflow-auto db-table-list py-2 px-2" id="dbTableList">
+                    <div class="flex-grow-1 overflow-auto py-2" id="dbTreeContainer">
                     </div>
                 </div>
 
@@ -865,6 +873,53 @@ if (is_dir(__DIR__ . '/plugins')) {
                 <div class="modal-footer border-secondary bg-darker p-2 d-flex gap-2">
                     <button type="button" class="btn btn-sm btn-dark border-secondary flex-grow-1" data-bs-dismiss="modal">Cancel</button>
                     <button type="button" class="btn btn-sm btn-danger flex-grow-1" id="btnConfirmModalExecute">Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="editCredentialsModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-secondary shadow-lg" style="background-color: #1c1c1f; border-radius: 14px; overflow: hidden;">
+                <div class="modal-header border-secondary" style="background-color: #18181b; padding: 20px 28px;">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-shield-lock text-muted fs-5"></i>
+                        <h5 class="modal-title fw-bold mb-0 text-white">Edit Admin Credentials</h5>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" style="padding: 28px;">
+                    <div class="alert alert-danger d-none" id="editCredentialsError" style="font-size: 0.82rem; border-radius: 8px;"></div>
+                    <form id="editCredentialsForm" autocomplete="off">
+                        <div class="mb-3">
+                            <label class="form-label small text-muted text-uppercase fw-semibold tracking-wide">Username</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-darker border-secondary text-muted"><i class="bi bi-person"></i></span>
+                                <input type="text" class="form-control bg-darker text-light border-secondary shadow-none" id="editCredUsername" required placeholder="Enter username">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small text-muted text-uppercase fw-semibold tracking-wide">New Password</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-darker border-secondary text-muted"><i class="bi bi-key"></i></span>
+                                <input type="password" class="form-control bg-darker text-light border-secondary shadow-none" id="editCredPassword" placeholder="Leave blank to keep current" autocomplete="new-password">
+                            </div>
+                            <small class="text-muted" style="font-size: 0.75rem;">Leave blank to keep the existing password.</small>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small text-muted text-uppercase fw-semibold tracking-wide">Confirm Password</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-darker border-secondary text-muted"><i class="bi bi-key-fill"></i></span>
+                                <input type="password" class="form-control bg-darker text-light border-secondary shadow-none" id="editCredConfirmPassword" placeholder="Confirm new password" autocomplete="new-password">
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer border-secondary" style="background-color: #18181b; padding: 14px 28px;">
+                    <button type="button" class="btn btn-sm btn-dark border-secondary px-3" data-bs-dismiss="modal" style="border-radius: 8px;">Cancel</button>
+                    <button type="button" class="btn btn-sm btn-success px-4" id="btnSaveCredentials" style="border-radius: 8px;">
+                        <i class="bi bi-check-lg me-1"></i>Save Changes
+                    </button>
                 </div>
             </div>
         </div>

@@ -1,15 +1,24 @@
 <IfModule mod_rewrite.c>
     RewriteEngine On
-    
     RewriteRule ^backend/ - [F,L]
+    RewriteRule ^config\.php$ - [F,L]
+    RewriteRule ^install\.php$ - [F,L]
+    RewriteRule ^temp_ssh/ - [F,L]
+    RewriteRule ^vendor/ - [F,L]
+    RewriteRule ^scratch/ - [F,L]
     RewriteRule \.json$ - [F,L]
-    RewriteRule ^(\.git|\.env) - [F,L]
-
+    RewriteRule ^(\.git|\.env|\.htaccess) - [F,L]
+    RewriteRule ^login$ login.php [L]
+    RewriteRule ^logout$ login.php?action=logout [L]
     RewriteRule ^api/([^/]+)$ api.php?action=$1 [QSA,L]
-
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteRule ^(.*)$ index.php [QSA,L]
 </IfModule>
-
+<IfModule mod_headers.c>
+    Header always set X-Frame-Options "DENY"
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set Referrer-Policy "same-origin"
+    Header always set X-XSS-Protection "1; mode=block"
+</IfModule>
 Options -Indexes

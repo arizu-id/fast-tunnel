@@ -1,12 +1,43 @@
 import { state } from './modules/state.js';
 import { getParentPath } from './modules/helpers.js';
-import { promptInput } from './modules/ui.js';
+import { promptInput, showToast } from './modules/ui.js';
 import { loadSessions, saveSession, exportSessions, handleImportFile, doExportWithPassword, doImportWithPassword } from './modules/sessions.js';
 import { expandAndRefreshFolder, createNewFile, createNewFolder } from './modules/ftp.js';
 import { initMonacoEditor, saveCurrentFile, closeTab } from './modules/editor.js';
 import { initContextMenu } from './modules/context-menu.js';
 import './modules/loading-bar.js';
 $(document).ready(function() {
+    // Intercept native fetch to automatically inject CSRF token
+    const originalFetch = window.fetch;
+    window.fetch = function(input, init) {
+        init = init || {};
+        init.headers = init.headers || {};
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+        if (csrfToken) {
+            if (init.headers instanceof Headers) {
+                init.headers.set('X-CSRF-Token', csrfToken);
+            } else {
+                init.headers['X-CSRF-Token'] = csrfToken;
+            }
+        }
+        return originalFetch(input, init);
+    };
+
+    // Configure jQuery ajax to inject CSRF token
+    $.ajaxSetup({
+        beforeSend: function(xhr) {
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+            if (csrfToken) {
+                xhr.setRequestHeader('X-CSRF-Token', csrfToken);
+            }
+        }
+    });
+
+    // Logout button handler
+    $('#btnLogout').click(function() {
+        window.location.href = '/logout';
+    });
+
     loadSessions();
     initMonacoEditor();
     initContextMenu();

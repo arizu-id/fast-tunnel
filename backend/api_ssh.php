@@ -18,19 +18,25 @@ echo "data: ".json_encode(['error'=>'No active SSH session'])."\n\n";
 flush();
 exit;
 }
-$pos=0;
-$lastKeepalive=time();
 $waited=0;
-while($pidFile&&!file_exists($pidFile)&&$waited<50){
+while(!file_exists($pidFile)&&$waited<80){
 usleep(100000);
 $waited++;
 clearstatcache(true,$pidFile);
 }
-while($pidFile&&file_exists($pidFile)&&!file_exists($killFile??'')){
+if(!file_exists($pidFile)){
+echo "data: ".json_encode(['error'=>'SSH process failed to start'])."\n\n";
+flush();
+exit;
+}
+$pos=0;
+$lastKeepalive=time();
+while(file_exists($pidFile)&&!file_exists($killFile??'')){
 clearstatcache(true,$outputFile);
 $size=@filesize($outputFile);
 if($size&&$size>$pos){
 $fh=fopen($outputFile,'rb');
+if($fh){
 fseek($fh,$pos);
 $chunk=fread($fh,$size-$pos);
 fclose($fh);
@@ -40,10 +46,14 @@ echo "data: ".json_encode(['output'=>$chunk])."\n\n";
 flush();
 }
 }
+}
 if(time()-$lastKeepalive>=5){
 echo ": keepalive\n\n";
 flush();
 $lastKeepalive=time();
+}
+if(connection_aborted()){
+break;
 }
 usleep(50000);
 }
@@ -51,12 +61,14 @@ clearstatcache(true,$outputFile);
 $size=@filesize($outputFile);
 if($size&&$size>$pos){
 $fh=fopen($outputFile,'rb');
+if($fh){
 fseek($fh,$pos);
 $chunk=fread($fh,$size-$pos);
 fclose($fh);
 if($chunk!==false&&$chunk!==''){
 echo "data: ".json_encode(['output'=>$chunk])."\n\n";
 flush();
+}
 }
 }
 echo "data: ".json_encode(['closed'=>true])."\n\n";
@@ -74,15 +86,18 @@ $host=$data['host']??'';
 $port=(int)($data['port']??22);
 $user=$data['user']??'';
 $password=$data['password']??'';
+$cols=(int)($data['cols']??80);
+$rows=(int)($data['rows']??24);
 $oldStream=$_SESSION['ssh_stream']??null;
 if($oldStream){
 @file_put_contents($oldStream['kill_file'],'1');
-usleep(200000);
+usleep(300000);
 @unlink($oldStream['kill_file']);
 @unlink($oldStream['output_file']);
 @unlink($oldStream['input_file']);
 @unlink($oldStream['session_file']);
 @unlink($oldStream['pid_file']);
+@unlink($oldStream['resize_file']??'');
 }
 $tmpDir=__DIR__.'/../temp_ssh';
 if(!is_dir($tmpDir)){
@@ -97,14 +112,15 @@ if(is_file($f)&&(time()-filemtime($f))>7200){
 }
 }
 }
+$testSsh=new \App\SshClient($host,$port);
+$testSsh->connect($user,$password);
 $sid=uniqid('ssh_',true);
 $sessionFile=$tmpDir.'/'.$sid.'.json';
 $inputFile=$tmpDir.'/'.$sid.'_input.bin';
 $outputFile=$tmpDir.'/'.$sid.'_output.bin';
 $killFile=$tmpDir.'/'.$sid.'_kill';
 $pidFile=$tmpDir.'/'.$sid.'_pid';
-$testSsh=new \App\SshClient($host,$port);
-$testSsh->connect($user,$password);
+$resizeFile=$tmpDir.'/'.$sid.'_resize';
 file_put_contents($sessionFile,json_encode([
 'host'=>$host,
 'port'=>$port,
@@ -114,7 +130,10 @@ file_put_contents($sessionFile,json_encode([
 'output_file'=>$outputFile,
 'kill_file'=>$killFile,
 'pid_file'=>$pidFile,
+'resize_file'=>$resizeFile,
 'session_file'=>$sessionFile,
+'cols'=>$cols,
+'rows'=>$rows,
 ]));
 file_put_contents($inputFile,'');
 file_put_contents($outputFile,'');
@@ -126,7 +145,6 @@ pclose(popen($cmd,'r'));
 }else{
 exec("$phpBin '$streamScript' '$sessionFile' > /dev/null 2>&1 &");
 }
-usleep(300000);
 $_SESSION['ssh_auth']=[
 'host'=>$host,'port'=>$port,
 'user'=>$user,'password'=>$password
@@ -136,9 +154,16 @@ $_SESSION['ssh_stream']=[
 'output_file'=>$outputFile,
 'kill_file'=>$killFile,
 'pid_file'=>$pidFile,
+'resize_file'=>$resizeFile,
 'session_file'=>$sessionFile,
 ];
-echo json_encode(['success'=>true]);
+$startWait=0;
+while(!file_exists($pidFile)&&$startWait<30){
+usleep(100000);
+$startWait++;
+clearstatcache(true,$pidFile);
+}
+echo json_encode(['success'=>true,'pty_ready'=>file_exists($pidFile)]);
 break;
 case'ssh_send_input':
 $input=$data['input']??'';
@@ -148,18 +173,25 @@ file_put_contents($stream['input_file'],$input,FILE_APPEND|LOCK_EX);
 echo json_encode(['success'=>true]);
 break;
 case'ssh_resize':
+$stream=$_SESSION['ssh_stream']??null;
+if($stream&&isset($stream['resize_file'])){
+$c=(int)($data['cols']??80);
+$r=(int)($data['rows']??24);
+file_put_contents($stream['resize_file'],json_encode(['cols'=>$c,'rows'=>$r]));
+}
 echo json_encode(['success'=>true]);
 break;
 case'ssh_disconnect':
 $stream=$_SESSION['ssh_stream']??null;
 if($stream){
 file_put_contents($stream['kill_file'],'1');
-usleep(200000);
+usleep(300000);
 @unlink($stream['kill_file']);
 @unlink($stream['output_file']);
 @unlink($stream['input_file']);
 @unlink($stream['session_file']);
 @unlink($stream['pid_file']);
+@unlink($stream['resize_file']??'');
 unset($_SESSION['ssh_stream']);
 }
 unset($_SESSION['ssh_auth']);
@@ -183,11 +215,15 @@ $cmds=[
 'uptime'=>"uptime -p 2>/dev/null || uptime | sed 's/.*up //;s/, [0-9]* user.*//' || echo Unknown",
 'hostname'=>"hostname 2>/dev/null || echo Unknown",
 'load'=>"cat /proc/loadavg 2>/dev/null | awk '{print \$1}' || echo ?",
+'disk'=>"df -h / 2>/dev/null | awk 'NR==2{print \$2\"||\"\$3\"||\"\$5}' || echo Unknown",
 ];
 foreach($cmds as$key=>$cmd){
 $res=$ssh->execute($cmd);
 $info[$key]=trim($res['output']??'Unknown');
 }
+$ipRes=$ssh->execute("curl -s ipwho.is 2>/dev/null || wget -qO- ipwho.is 2>/dev/null || echo '{}'");
+$ipJson=json_decode(trim($ipRes['output']??'{}'),true);
+$info['ipinfo']=$ipJson&&isset($ipJson['ip'])?$ipJson:null;
 echo json_encode(['success'=>true,'info'=>$info]);
 break;
 default:

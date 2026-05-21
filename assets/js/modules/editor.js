@@ -177,7 +177,7 @@ export function openFile(path, name) {
     renderTabs();
     switchTab(path);
     $.ajax({
-        url: 'api.php?action=read_file',
+        url: '/api/read_file',
         type: 'POST',
         contentType: 'application/json',
         dataType: 'json',
@@ -213,7 +213,7 @@ export function saveCurrentFile(callback) {
     btn.html('<i class="bi bi-arrow-repeat spin me-2"></i>Saving...');
     btn.prop('disabled', true);
     $.ajax({
-        url: 'api.php?action=write_file',
+        url: '/api/write_file',
         type: 'POST',
         contentType: 'application/json',
         dataType: 'json',

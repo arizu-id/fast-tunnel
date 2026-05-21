@@ -708,6 +708,54 @@ html, body {
 .spin {
     animation: spin 1s linear infinite;
 }
+.ssh-info-label {
+    font-size: 0.7rem;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+    font-weight: 600;
+}
+.tree-row {
+    padding: 4px 10px;
+    cursor: pointer;
+    font-size: 0.82rem;
+    color: var(--text-base);
+    border-radius: 4px;
+    transition: background-color 0.12s;
+    user-select: none;
+}
+.tree-row:hover {
+    background-color: rgba(255,255,255,0.06);
+}
+.chevron-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    font-size: 0.7rem;
+    color: var(--text-dim);
+}
+.chevron-icon i {
+    transition: transform 0.15s ease;
+}
+.tree-children {
+    overflow: hidden;
+}
+.tree-empty {
+    padding: 4px 12px;
+    font-size: 0.78rem;
+}
+.db-tree-db > .tree-row {
+    font-weight: 500;
+}
+.db-tree-table.selected > .tree-row {
+    background-color: var(--surface-5);
+    color: #ffffff;
+}
+.db-tree-table > .tree-row {
+    padding-left: 18px;
+}
 .text-warning-custom {
     color: var(--accent-amber) !important;
 }
@@ -779,30 +827,6 @@ html, body {
     .file-explorer, .db-sidebar, .ssh-sidebar {
         width: 220px !important;
     }
-}
-
-.db-table-item {
-    cursor: pointer;
-    padding: 8px 12px;
-    border-radius: 6px;
-    margin: 2px 8px;
-    transition: all 0.2s ease;
-    color: var(--text-muted);
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.db-table-item:hover {
-    background-color: rgba(255, 255, 255, 0.05) !important;
-    color: #ffffff !important;
-}
-
-.db-table-item.active {
-    background-color: var(--surface-3) !important;
-    color: #ffffff !important;
-    border-left: 2px solid var(--accent);
-    padding-left: 10px;
 }
 
 #dbResultArea .card {

@@ -12,7 +12,7 @@ export function connectSession(id, sessionData) {
     $('#connectionStatus').html(`<span class="text-info"><i class="bi bi-arrow-repeat spin me-2 d-inline-block"></i>Connecting to ${sessionData.name}...</span>`);
     $('.session-item').addClass('pe-none opacity-50');
     $.ajax({
-        url: 'api.php?action=connect',
+        url: '/api/connect',
         type: 'POST',
         contentType: 'application/json',
         dataType: 'json',
@@ -141,7 +141,7 @@ export function toggleFolder(path, $item, $children) {
         if ($children.children().length === 0) {
             $children.html('<div class="text-muted small ps-2 py-1 opacity-50"><i class="bi bi-arrow-repeat spin me-1"></i>Loading...</div>');
             $.ajax({
-                url: 'api.php?action=list',
+                url: '/api/list',
                 type: 'POST',
                 contentType: 'application/json',
                 dataType: 'json',
@@ -167,7 +167,7 @@ export function expandAndRefreshFolder(path) {
     const $children = $item.find('.tree-children').first();
     $children.empty();
     $.ajax({
-        url: 'api.php?action=list',
+        url: '/api/list',
         type: 'POST',
         contentType: 'application/json',
         dataType: 'json',
@@ -182,7 +182,7 @@ export function expandAndRefreshFolder(path) {
 export function createNewFile(path, name) {
     const fullPath = (path === '/' ? '' : path) + '/' + name;
     $.ajax({
-        url: 'api.php?action=write_file',
+        url: '/api/write_file',
         type: 'POST',
         contentType: 'application/json',
         dataType: 'json',
@@ -201,7 +201,7 @@ export function createNewFile(path, name) {
 export function createNewFolder(path, name) {
     const fullPath = (path === '/' ? '' : path) + '/' + name;
     $.ajax({
-        url: 'api.php?action=create_dir',
+        url: '/api/create_dir',
         type: 'POST',
         contentType: 'application/json',
         dataType: 'json',
@@ -220,7 +220,7 @@ export function renameItem(path, newName, isDir) {
     const parent = getParentPath(path);
     const newPath = (parent === '/' ? '' : parent) + '/' + newName;
     $.ajax({
-        url: 'api.php?action=rename',
+        url: '/api/rename',
         type: 'POST',
         contentType: 'application/json',
         dataType: 'json',
@@ -263,7 +263,7 @@ export function deleteItem(path, isDir) {
         function() {
             const parent = getParentPath(path);
             $.ajax({
-                url: 'api.php?action=delete',
+                url: '/api/delete',
                 type: 'POST',
                 contentType: 'application/json',
                 dataType: 'json',

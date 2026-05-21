@@ -16,7 +16,7 @@ export function connectMysql(sessionId, session) {
     const password = session.password ? atob(session.password) : '';
     showToast('Connecting to MySQL...', 'info');
     $('.session-item').addClass('pe-none opacity-50');
-    fetch('api.php?action=mysql_connect', {
+    fetch('/api/mysql_connect', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -42,14 +42,14 @@ export function connectMysql(sessionId, session) {
         $('#terminal-container').addClass('d-none').removeClass('d-flex');
         $('#monaco-container').addClass('d-none');
         $('#editorPlaceholder').addClass('d-none');
+        $('#floatingActionPanel').addClass('d-none');
+        $('.editor-tabs-container').addClass('d-none');
         $('#db-container').removeClass('d-none').addClass('d-flex');
         setupDbSidebar(res.databases, res.db_name);
         if (res.db_name) {
             currentDb = res.db_name;
-            renderTables(res.tables);
         } else {
             currentDb = '';
-            $('#dbTableList').empty();
         }
         setupDbWorkspace();
         state.isConnecting = false;
@@ -64,19 +64,8 @@ export function connectMysql(sessionId, session) {
     });
 }
 function setupDbSidebar(databases, selectedDb) {
-    const $dbSelect = $('#dbSelector');
-    $dbSelect.empty().append('<option value="">-- Select Database --</option>');
-    if (databases && databases.length > 0) {
-        databases.forEach(db => {
-            const opt = $(`<option value="${db}">${db}</option>`);
-            if (db === selectedDb) opt.prop('selected', true);
-            $dbSelect.append(opt);
-        });
-    }
-    $dbSelect.off('change').on('change', function() {
-        const db = $(this).val();
-        if (db) selectDatabase(db);
-    });
+    const $tree = $('#dbTreeContainer');
+    $tree.empty();
     $('.btn-db-disconnect').off('click').on('click', () => {
         $('#workspaceArea').addClass('d-none');
         $('#welcomeArea').removeClass('d-none');
@@ -87,51 +76,86 @@ function setupDbSidebar(databases, selectedDb) {
         state.currentProtocol = null;
         showToast('Disconnected from MySQL');
     });
+    if (!databases || databases.length === 0) {
+        $tree.append('<div class="text-muted small text-center p-3 opacity-50">No databases found</div>');
+        return;
+    }
+    databases.forEach(db => {
+        const $dbItem = $(`
+            <div class="tree-item folder-item db-tree-db" data-db="${db}">
+                <div class="tree-row d-flex align-items-center">
+                    <span class="chevron-icon me-1"><i class="bi bi-chevron-right"></i></span>
+                    <i class="bi bi-database me-2" style="color:var(--accent-amber);"></i>
+                    <span class="item-name text-truncate">${db}</span>
+                </div>
+                <div class="tree-children ps-3" style="display:none;"></div>
+            </div>
+        `);
+        const $row = $dbItem.find('.tree-row');
+        const $children = $dbItem.find('.tree-children');
+        const $chevron = $dbItem.find('.chevron-icon i');
+        $row.click(function(e) {
+            e.stopPropagation();
+            const expanded = $dbItem.attr('data-expanded') === 'true';
+            if (expanded) {
+                $children.slideUp(150);
+                $chevron.css('transform', 'rotate(0deg)');
+                $dbItem.attr('data-expanded', 'false');
+            } else {
+                $chevron.css('transform', 'rotate(90deg)');
+                $dbItem.attr('data-expanded', 'true');
+                $children.html('<div class="tree-empty text-muted small ps-2 opacity-50"><i class="bi bi-arrow-repeat spin me-1"></i>Loading...</div>');
+                $children.slideDown(150);
+                loadDbTables(db, $children);
+            }
+        });
+        $tree.append($dbItem);
+        if (db === selectedDb) {
+            $row.trigger('click');
+        }
+    });
 }
-function selectDatabase(db) {
-    currentDb = db;
-    currentTable = '';
-    fetch('api.php?action=mysql_list_tables', {
+function loadDbTables(db, $container) {
+    fetch('/api/mysql_list_tables', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ db_name: db })
     })
     .then(r => r.json())
     .then(res => {
-        if (res.success) {
-            renderTables(res.tables);
-        } else {
-            showToast(res.error || 'Failed to select database', 'danger');
+        $container.empty();
+        if (!res.success || !res.tables || res.tables.length === 0) {
+            $container.append('<div class="tree-empty text-muted small ps-2 opacity-50">No tables</div>');
+            return;
         }
-    })
-    .catch(() => showToast('Failed to select database', 'danger'));
-}
-function renderTables(tables) {
-    const $list = $('#dbTableList');
-    $list.empty();
-    if (!tables || tables.length === 0) {
-        $list.append('<div class="text-muted small text-center p-3 opacity-50">No tables found</div>');
-        return;
-    }
-    tables.forEach(table => {
-        const $item = $(`
-            <div class="db-table-item d-flex align-items-center" data-table="${table}">
-                <i class="bi bi-table me-2 text-info"></i>
-                <span class="text-truncate">${table}</span>
-            </div>
-        `);
-        $item.click(function() {
-            $('.db-table-item').removeClass('active');
-            $(this).addClass('active');
-            currentTable = table;
-            currentPage = 1;
-            setActiveTable(table);
-            switchDbTab('browse');
-            browseTable(table, 1);
+        res.tables.forEach(table => {
+            const $tblItem = $(`
+                <div class="tree-item file-item db-tree-table" data-db="${db}" data-table="${table}">
+                    <div class="tree-row d-flex align-items-center">
+                        <i class="bi bi-table me-2 text-info" style="font-size:0.85rem;"></i>
+                        <span class="item-name text-truncate">${table}</span>
+                    </div>
+                </div>
+            `);
+            $tblItem.find('.tree-row').click(function(e) {
+                e.stopPropagation();
+                $('.db-tree-table').removeClass('selected');
+                $tblItem.addClass('selected');
+                currentDb = db;
+                currentTable = table;
+                currentPage = 1;
+                setActiveTable(table);
+                switchDbTab('browse');
+                browseTable(table, 1);
+            });
+            $container.append($tblItem);
         });
-        $list.append($item);
+    })
+    .catch(() => {
+        $container.empty().append('<div class="tree-empty text-muted small ps-2 opacity-50">Failed to load</div>');
     });
 }
+function renderTables(tables) {}
 function setupDbWorkspace() {
     $('.db-tab-btn').off('click').on('click', function() {
         const tab = $(this).data('tab');
@@ -172,7 +196,7 @@ function browseTable(table, page) {
     const $tbody = $('#dbBrowseTbody');
     $thead.empty();
     $tbody.html('<tr><td colspan="99" class="text-center p-4"><div class="spinner-border text-primary"></div></td></tr>');
-    fetch('api.php?action=mysql_table_data', {
+    fetch('/api/mysql_table_data', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ table: table, page: page, limit: limit, db_name: currentDb })
@@ -249,7 +273,7 @@ function loadTableStructure(table) {
     $('#dbColumnsTableTitle').text(table);
     const $tbody = $('#dbColumnsTbody');
     $tbody.html('<tr><td colspan="99" class="text-center p-4"><div class="spinner-border text-primary"></div></td></tr>');
-    fetch('api.php?action=mysql_table_structure', {
+    fetch('/api/mysql_table_structure', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ table: table, db_name: currentDb })
@@ -289,7 +313,7 @@ function runQuery() {
     if (!sql) return;
     const $result = $('#sqlResultArea');
     $result.html('<div class="d-flex justify-content-center p-3"><div class="spinner-border spinner-border-sm text-primary"></div></div>');
-    fetch('api.php?action=mysql_run_query', {
+    fetch('/api/mysql_run_query', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sql: sql, db_name: currentDb })

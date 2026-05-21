@@ -17,14 +17,16 @@ export function connectSsh(sessionId, session) {
     showToast('Connecting to SSH...', 'info');
     $('.session-item').addClass('pe-none opacity-50');
     $('#connectionStatus').html(`<span class="text-info"><i class="bi bi-arrow-repeat spin me-2 d-inline-block"></i>Connecting to ${session.name}...</span>`);
-    fetch('api.php?action=ssh_connect', {
+    fetch('/api/ssh_connect', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
             host: session.host,
             port: session.port,
             user: session.user,
-            password: password
+            password: password,
+            cols: 80,
+            rows: 24
         })
     })
     .then(r => {
@@ -32,7 +34,8 @@ export function connectSsh(sessionId, session) {
         return r.json();
     })
     .then(res => {
-        showToast('SSH connected — realtime PTY active');
+        if (!res.success) throw new Error(res.error || 'Connection failed');
+        showToast('SSH connected — terminal ready');
         $('#connectionStatus').html(`<span class="text-success"><i class="bi bi-link-45deg me-2 fs-5"></i>Connected to ${session.name}</span>`);
         $('#welcomeArea').addClass('d-none');
         $('#workspaceArea').removeClass('d-none');
@@ -40,8 +43,6 @@ export function connectSsh(sessionId, session) {
         $('#dbSidebar').addClass('d-none');
         $('#sshSidebar').removeClass('d-none').addClass('d-flex');
         buildSshSidebar(session);
-        $('#fileList').empty();
-        $('#currentPath').text('/');
         if (state.openTabs && state.openTabs.length > 0) {
             state.openTabs.forEach(t => { if (t.model) t.model.dispose(); });
             state.openTabs = [];
@@ -50,10 +51,10 @@ export function connectSsh(sessionId, session) {
         $('#editorTabs').empty();
         $('.editor-tabs-container').addClass('d-none');
         $('#monaco-container').addClass('d-none');
-        $('#terminal-container').removeClass('d-none').addClass('d-flex');
-        $('#editorPlaceholder').addClass('d-none');
         $('#floatingActionPanel').addClass('d-none');
+        $('#editorPlaceholder').addClass('d-none');
         $('#db-container').addClass('d-none');
+        $('#terminal-container').removeClass('d-none').addClass('d-flex');
         initTerminal(session);
         loadServerInfo();
         state.isConnecting = false;
@@ -63,6 +64,8 @@ export function connectSsh(sessionId, session) {
         showToast(err.message || 'SSH connection failed', 'danger');
         $('#connectionStatus').html(`<span class="text-danger"><i class="bi bi-x-circle me-2"></i>${err.message || 'Connection failed'}</span>`);
         state.isConnecting = false;
+        state.currentProtocol = null;
+        state.currentSessionId = null;
         $('.session-item').removeClass('pe-none opacity-50');
     });
 }
@@ -76,11 +79,16 @@ function buildSshSidebar(session) {
         <div class="flex-grow-1 overflow-auto p-3" id="sshServerInfo">
             <div class="text-muted small p-2 opacity-50"><i class="bi bi-arrow-repeat spin me-1"></i>Loading server info...</div>
         </div>
+        <div class="p-2 border-top border-secondary" style="flex-shrink:0;">
+            <button class="btn btn-sm btn-outline-danger w-100 d-flex align-items-center justify-content-center gap-2 btn-ssh-disconnect-bottom" style="border-radius:8px;padding:8px 0;font-size:0.82rem;">
+                <i class="bi bi-box-arrow-left"></i>Disconnect
+            </button>
+        </div>
     `);
-    $sidebar.find('.btn-ssh-disconnect').on('click', () => disconnectSsh());
+    $sidebar.find('.btn-ssh-disconnect, .btn-ssh-disconnect-bottom').on('click', () => disconnectSsh());
 }
 function loadServerInfo() {
-    fetch('api.php?action=ssh_get_server_info', {
+    fetch('/api/ssh_get_server_info', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: '{}'
@@ -89,29 +97,70 @@ function loadServerInfo() {
     .then(res => {
         if (!res.success) return;
         const i = res.info;
-        $('#sshServerInfo').html(`
+        const disk = (i.disk || '').split('||');
+        const diskTotal = disk[0] || '?';
+        const diskUsed = disk[1] || '?';
+        const diskPercent = disk[2] || '?';
+        let html = `
             <div class="mb-2 pb-2 border-bottom border-secondary">
-                <div class="text-muted mb-1" style="font-size:0.7rem;letter-spacing:.5px;text-transform:uppercase;">System</div>
+                <div class="ssh-info-label">Hostname</div>
+                <div class="text-light" style="font-size:0.82rem;font-weight:600;">${i.hostname || 'Unknown'}</div>
+            </div>
+            <div class="mb-2 pb-2 border-bottom border-secondary">
+                <div class="ssh-info-label">System</div>
                 <div class="text-light" style="font-size:0.78rem;">${i.distro || i.os}</div>
                 <div class="text-muted" style="font-size:0.72rem;">Kernel: ${i.kernel} · ${i.arch}</div>
             </div>
             <div class="mb-2 pb-2 border-bottom border-secondary">
-                <div class="text-muted mb-1" style="font-size:0.7rem;letter-spacing:.5px;text-transform:uppercase;">CPU</div>
+                <div class="ssh-info-label">CPU</div>
                 <div class="text-light" style="font-size:0.78rem;">${i.cpu}</div>
                 <div class="text-muted" style="font-size:0.72rem;">${i.cores} core${i.cores !== '1' ? 's' : ''} · Load: ${i.load}</div>
             </div>
             <div class="mb-2 pb-2 border-bottom border-secondary">
-                <div class="text-muted mb-1" style="font-size:0.7rem;letter-spacing:.5px;text-transform:uppercase;">Memory</div>
+                <div class="ssh-info-label">Memory</div>
                 <div class="d-flex justify-content-between">
                     <span class="text-light" style="font-size:0.78rem;">Total: <strong>${i.ram}</strong></span>
                     <span style="font-size:0.78rem;color:var(--accent);">Used: <strong>${i.ram_used}</strong></span>
                 </div>
             </div>
-            <div class="mb-2">
-                <div class="text-muted mb-1" style="font-size:0.7rem;letter-spacing:.5px;text-transform:uppercase;">Uptime</div>
-                <div class="text-light" style="font-size:0.78rem;">${i.uptime}</div>
+            <div class="mb-2 pb-2 border-bottom border-secondary">
+                <div class="ssh-info-label">Disk (root)</div>
+                <div class="d-flex justify-content-between">
+                    <span class="text-light" style="font-size:0.78rem;">Total: <strong>${diskTotal}</strong></span>
+                    <span style="font-size:0.78rem;color:var(--accent);">Used: <strong>${diskUsed}</strong> (${diskPercent})</span>
+                </div>
             </div>
-        `);
+            <div class="mb-2 pb-2 border-bottom border-secondary">
+                <div class="ssh-info-label">Uptime</div>
+                <div class="text-light" style="font-size:0.78rem;">${i.uptime}</div>
+            </div>`;
+        if (i.ipinfo) {
+            const ip = i.ipinfo;
+            const flag = ip.country_code ? String.fromCodePoint(...[...ip.country_code.toUpperCase()].map(c => 0x1F1E6 + c.charCodeAt(0) - 65)) : '';
+            html += `
+            <div class="mb-2 pb-2 border-bottom border-secondary">
+                <div class="ssh-info-label">Public IP</div>
+                <div class="text-light" style="font-size:0.82rem;font-weight:600;font-family:monospace;">${ip.ip || '?'}</div>
+                <div class="text-muted" style="font-size:0.72rem;">${ip.type || ''}</div>
+            </div>
+            <div class="mb-2 pb-2 border-bottom border-secondary">
+                <div class="ssh-info-label">Location ${flag}</div>
+                <div class="text-light" style="font-size:0.78rem;">${ip.city || '?'}, ${ip.region || '?'}</div>
+                <div class="text-muted" style="font-size:0.72rem;">${ip.country || '?'} (${ip.country_code || '?'})</div>
+                <div class="text-muted" style="font-size:0.72rem;">Lat: ${ip.latitude || '?'} · Lon: ${ip.longitude || '?'}</div>
+            </div>
+            <div class="mb-2 pb-2 border-bottom border-secondary">
+                <div class="ssh-info-label">ISP / Network</div>
+                <div class="text-light" style="font-size:0.78rem;">${ip.connection?.isp || ip.isp || '?'}</div>
+                <div class="text-muted" style="font-size:0.72rem;">ASN: ${ip.connection?.asn || ip.asn || '?'} · ${ip.connection?.org || ip.org || ''}</div>
+            </div>
+            <div class="mb-2">
+                <div class="ssh-info-label">Timezone</div>
+                <div class="text-light" style="font-size:0.78rem;">${ip.timezone?.id || ip.timezone || '?'}</div>
+                <div class="text-muted" style="font-size:0.72rem;">UTC${ip.timezone?.utc || ''}</div>
+            </div>`;
+        }
+        $('#sshServerInfo').html(html);
     })
     .catch(() => {
         $('#sshServerInfo').html('<div class="text-muted small p-2 opacity-50">Could not load server info</div>');
@@ -158,36 +207,26 @@ function initTerminal(session) {
     term.open(container);
     requestAnimationFrame(() => {
         requestAnimationFrame(() => {
-            try { fitAddon.fit(); } catch(e) {}
+            try {
+                fitAddon.fit();
+                sendResize(term.cols, term.rows);
+            } catch(e) {}
         });
     });
+    let resizeTimer = null;
     const resizeObserver = new ResizeObserver(() => {
         if (fitAddon && term) {
             try { fitAddon.fit(); } catch(e) {}
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(() => {
+                if (term) sendResize(term.cols, term.rows);
+            }, 200);
         }
     });
     resizeObserver.observe(container);
-    sseSource = new EventSource('api.php?action=ssh_stream_output');
-    sseSource.onmessage = function(e) {
-        const msg = JSON.parse(e.data);
-        if (msg.output) {
-            term.write(msg.output);
-        } else if (msg.closed) {
-            term.write('\r\n\x1b[1;31m[Connection closed]\x1b[0m\r\n');
-            sseSource.close();
-            sseSource = null;
-        } else if (msg.error) {
-            term.write('\r\n\x1b[1;31m[Error: ' + msg.error + ']\x1b[0m\r\n');
-            sseSource.close();
-            sseSource = null;
-        }
-    };
-    sseSource.onerror = function() {
-        if (sseSource && sseSource.readyState === EventSource.CLOSED) {
-            term.write('\r\n\x1b[1;31m[Connection lost]\x1b[0m\r\n');
-            sseSource = null;
-        }
-    };
+    term.write('\x1b[1;32mWelcome to Fast Tunnel · Realtime SSH Terminal\x1b[0m\r\n');
+    term.write(`\x1b[0;90mConnected to \x1b[0;36m${session.user}@${session.host}\x1b[0;90m via PTY\x1b[0m\r\n\r\n`);
+    connectSSE();
     term.onData(data => {
         if (data === '\x03' && term.hasSelection()) {
             try {
@@ -196,23 +235,21 @@ function initTerminal(session) {
             } catch(e) {}
             return;
         }
-        sendInputCommand(data);
+        sendInput(data);
     });
     term.onKey(({ key, domEvent }) => {
         if (domEvent.ctrlKey && domEvent.key === 'v') {
             navigator.clipboard.readText().then(text => {
-                sendInputCommand(text);
+                sendInput(text);
             }).catch(() => {});
         }
     });
-    term.write('\x1b[1;32mWelcome to Fast Tunnel · Realtime SSH Terminal\x1b[0m\r\n');
-    term.write(`\x1b[0;90mConnected to \x1b[0;36m${session.user}@${session.host}\x1b[0;90m via PTY\x1b[0m\r\n\r\n`);
     const $input = $('#sshConsoleInput');
     const $btn = $('#btnSshSendCmd');
     $input.off('keydown').on('keydown', function(e) {
         if (e.key === 'Enter') {
             e.preventDefault();
-            executeConsoleCommand();
+            runConsoleCmd();
         } else if (e.key === 'ArrowUp') {
             e.preventDefault();
             if (commandHistory.length > 0 && historyIndex < commandHistory.length - 1) {
@@ -230,36 +267,50 @@ function initTerminal(session) {
             }
         }
     });
-    $btn.off('click').on('click', () => {
-        executeConsoleCommand();
-    });
-    function executeConsoleCommand() {
+    $btn.off('click').on('click', () => runConsoleCmd());
+    function runConsoleCmd() {
         const cmd = $input.val();
         if (cmd.length === 0) return;
-        sendInputCommand(cmd + '\n');
+        sendInput(cmd + '\n');
         if (commandHistory.length === 0 || commandHistory[commandHistory.length - 1] !== cmd) {
             commandHistory.push(cmd);
-            if (commandHistory.length > 50) {
-                commandHistory.shift();
-            }
+            if (commandHistory.length > 50) commandHistory.shift();
         }
         historyIndex = -1;
         $input.val('').focus();
     }
-    container.addEventListener('click', () => {
-        term.focus();
-    });
+    container.addEventListener('click', () => { term.focus(); });
+}
+function connectSSE() {
+    if (sseSource) { sseSource.close(); sseSource = null; }
+    sseSource = new EventSource('/api/ssh_stream_output');
+    sseSource.onmessage = function(e) {
+        try {
+            const msg = JSON.parse(e.data);
+            if (msg.output && term) {
+                term.write(msg.output);
+            } else if (msg.closed) {
+                if (term) term.write('\r\n\x1b[1;31m[Connection closed]\x1b[0m\r\n');
+                sseSource.close();
+                sseSource = null;
+            } else if (msg.error) {
+                if (term) term.write('\r\n\x1b[1;31m[Error: ' + msg.error + ']\x1b[0m\r\n');
+                sseSource.close();
+                sseSource = null;
+            }
+        } catch(err) {}
+    };
+    sseSource.onerror = function() {
+        if (sseSource && sseSource.readyState === EventSource.CLOSED) {
+            if (term) term.write('\r\n\x1b[1;31m[SSE connection lost]\x1b[0m\r\n');
+            sseSource = null;
+        }
+    };
 }
 function disconnectSsh() {
-    if (sseSource) {
-        sseSource.close();
-        sseSource = null;
-    }
-    if (term) {
-        term.dispose();
-        term = null;
-    }
-    fetch('api.php?action=ssh_disconnect', {
+    if (sseSource) { sseSource.close(); sseSource = null; }
+    if (term) { term.dispose(); term = null; }
+    fetch('/api/ssh_disconnect', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: '{}'
@@ -273,10 +324,17 @@ function disconnectSsh() {
     state.currentProtocol = null;
     showToast('Disconnected from SSH');
 }
-function sendInputCommand(cmd) {
-    fetch('api.php?action=ssh_send_input', {
+function sendInput(data) {
+    fetch('/api/ssh_send_input', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ input: cmd })
+        body: JSON.stringify({ input: data })
+    }).catch(() => {});
+}
+function sendResize(cols, rows) {
+    fetch('/api/ssh_resize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cols: cols, rows: rows })
     }).catch(() => {});
 }
