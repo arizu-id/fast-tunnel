@@ -22,7 +22,17 @@ $(document).ready(function() {
     });
     $('#exportPasswordModal').on('shown.bs.modal', () => { $('#exportPasswordInput').val('').trigger('focus'); });
     $('#btnConfirmImport').click(doImportWithPassword);
-    $('#btnToggleImportPassword').click
+    $('#btnToggleImportPassword').click(function() {
+        const inp = $('#importPasswordInput');
+        const isPass = inp.attr('type') === 'password';
+        inp.attr('type', isPass ? 'text' : 'password');
+        $(this).find('i').toggleClass('bi-eye bi-eye-slash');
+    });
+    $('#importPasswordModal').on('shown.bs.modal', () => { $('#importPasswordInput').val('').trigger('focus'); });
+    $('#btnToggleSidebar, .btn-toggle-sidebar').click(function() {
+        const $left = $('.panel-left, .file-explorer');
+        $left.toggleClass('show-mobile');
+        if ($left.hasClass('show-mobile')) {
             $('#sidebarBackdrop').removeClass('d-none');
         } else {
             $('#sidebarBackdrop').addClass('d-none');
@@ -56,6 +66,26 @@ $(document).ready(function() {
     $('#addSessionModal').on('hidden.bs.modal', function() {
         $('#addSessionForm')[0].reset();
         $('#proxyFields').addClass('d-none');
+    });
+    $('#sessionProtocol').change(function() {
+        const proto = $(this).val();
+        $('#ftpFields').toggleClass('d-none', proto !== 'ftp');
+        $('#mysqlFields').toggleClass('d-none', proto !== 'mysql');
+        $('#sshFields').toggleClass('d-none', proto !== 'ssh');
+    });
+    $('#btnNewFile').click(function() {
+        const path = state.selectedPath || state.currentPath;
+        const basePath = state.selectedIsDir ? path : getParentPath(path);
+        promptInput('New File Name', function(name) {
+            createNewFile(basePath, name);
+        });
+    });
+    $('#btnNewFolder').click(function() {
+        const path = state.selectedPath || state.currentPath;
+        const basePath = state.selectedIsDir ? path : getParentPath(path);
+        promptInput('New Folder Name', function(name) {
+            createNewFolder(basePath, name);
+        });
     });
     $(window).bind('keydown', function(event) {
         if (event.ctrlKey || event.metaKey) {

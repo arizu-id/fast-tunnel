@@ -1,1 +1,22 @@
-import { state } from './state.js';\nexport function getParentPath(path) {\n    if (path === '/' || path === '') return '/';\n    const parts = path.split('/');\n    parts.pop();\n    return parts.join('/') || '/';\n}\nexport function selectItem(path, isDir) {\n    state.selectedPath = path;\n    state.selectedIsDir = isDir;\n    $('.tree-item').removeClass('selected');\n    $(`.tree-item[data-path="${CSS.escape(path)}"]`).addClass('selected');\n    $('#currentPath').text(path).attr('title', path);\n}\nexport function formatBytes(bytes, decimals = 2) {\n    if (!+bytes) return '0 Bytes';\n    const k = 1024;\n    const dm = decimals < 0 ? 0 : decimals;\n    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];\n    const i = Math.floor(Math.log(bytes) / Math.log(k));\n    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;\n}
+import { state } from './state.js';
+export function getParentPath(path) {
+    if (path === '/' || path === '') return '/';
+    const parts = path.split('/');
+    parts.pop();
+    return parts.join('/') || '/';
+}
+export function selectItem(path, isDir) {
+    state.selectedPath = path;
+    state.selectedIsDir = isDir;
+    $('.tree-item').removeClass('selected');
+    $(`.tree-item[data-path="${CSS.escape(path)}"]`).addClass('selected');
+    $('#currentPath').text(path).attr('title', path);
+}
+export function formatBytes(bytes, decimals = 2) {
+    if (!+bytes) return '0 Bytes';
+    const k = 1024;
+    const dm = decimals < 0 ? 0 : decimals;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
+}

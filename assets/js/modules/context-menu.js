@@ -1,40 +1,61 @@
 import { state } from './state.js';
 import { selectItem } from './helpers.js';
 import { promptInput } from './ui.js';
-import { toggleFolder, loadRoot, downloadFile, createNewFile, createNewFolder, renameItem, deleteItem } from './ftp.js';
+import { toggleFolder, expandAndRefreshFolder, createNewFile, createNewFolder, renameItem, deleteItem } from './ftp.js';
 import { openFile } from './editor.js';
 export function ctxIcon(biClass, extraClass) {
     const cls = extraClass ? ` ${extraClass}` : '';
     return `<i class="bi ${biClass} ctx-menu-icon${cls}"></i>`;
 }
 export function initContextMenu() {
+    if (typeof $.contextMenu !== 'function') return;
     $.contextMenu({
         selector: '.tree-item',
         isHtmlName: true,
         build: function($trigger, e) {
-            const path   = $trigger.attr('data-path');
-            const name   = $trigger.attr('data-name');
-            const isDir  = $trigger.attr('data-isdir') === 'true';
+            const path = $trigger.attr('data-path');
+            const name = path ? path.split('/').pop() : '';
+            const isDir = $trigger.attr('data-is-dir') === 'true' || $trigger.hasClass('folder-item');
             selectItem(path, isDir);
-            const openIcon = isDir ? 'bi-folder2-open' : 'bi-pencil-square';
-            const openLabel = isDir ? 'Open Folder' : 'Open File';
-            const items = {
-                open: {
-                    name: `${ctxIcon(openIcon)} ${openLabel}`,
+            const items = {};
+            if (isDir) {
+                items.open = {
+                    name: `${ctxIcon('bi-folder2-open')} Open Folder`,
                     callback: function() {
-                        if (isDir) {
-                            toggleFolder(path, $trigger, $trigger.next('.folder-children'));
-                        } else {
-                            openFile(path, name);
-                        }
+                        const $children = $trigger.find('.tree-children').first();
+                        toggleFolder(path, $trigger, $children);
                     }
-                },
-                rename: {
-                    name: `${ctxIcon('bi-pen
-                    name: `${ctxIcon('bi-download')} Download`,
-                    callback: function() { downloadFile(path, name); }
+                };
+                items.new_file = {
+                    name: `${ctxIcon('bi-file-earmark-plus')} New File`,
+                    callback: function() {
+                        promptInput('New File Name:', function(n) { createNewFile(path, n); });
+                    }
+                };
+                items.new_folder = {
+                    name: `${ctxIcon('bi-folder-plus')} New Folder`,
+                    callback: function() {
+                        promptInput('New Folder Name:', function(n) { createNewFolder(path, n); });
+                    }
+                };
+                items.refresh = {
+                    name: `${ctxIcon('bi-arrow-clockwise')} Refresh`,
+                    callback: function() { expandAndRefreshFolder(path); }
+                };
+            } else {
+                items.open = {
+                    name: `${ctxIcon('bi-pencil-square')} Open File`,
+                    callback: function() { openFile(path, name); }
                 };
             }
+            items.rename = {
+                name: `${ctxIcon('bi-pen')} Rename`,
+                callback: function() {
+                    promptInput('New Name:', function(newName) {
+                        renameItem(path, newName, isDir);
+                    });
+                }
+            };
             items.sep1 = '--------';
             items.delete = {
                 name: `${ctxIcon('bi-trash3', 'text-danger')} <span style="color:#f87171;">Delete</span>`,
@@ -56,21 +77,21 @@ export function initContextMenu() {
                     new_file: {
                         name: `${ctxIcon('bi-file-earmark-plus')} New File`,
                         callback: function() {
-                            selectItem('/', true);
-                            promptInput('New File Name:', createNewFile);
+                            const path = state.selectedPath || '/';
+                            promptInput('New File Name:', function(n) { createNewFile(path, n); });
                         }
                     },
                     new_folder: {
                         name: `${ctxIcon('bi-folder-plus')} New Folder`,
                         callback: function() {
-                            selectItem('/', true);
-                            promptInput('New Folder Name:', createNewFolder);
+                            const path = state.selectedPath || '/';
+                            promptInput('New Folder Name:', function(n) { createNewFolder(path, n); });
                         }
                     },
                     sep1: '--------',
                     refresh: {
                         name: `${ctxIcon('bi-arrow-clockwise')} Refresh`,
-                        callback: function() { loadRoot(); }
+                        callback: function() { expandAndRefreshFolder(state.currentPath || '/'); }
                     }
                 }
             };
