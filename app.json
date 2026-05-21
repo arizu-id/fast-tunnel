@@ -1,0 +1,9 @@
+{
+    "name": "Fast Tunnel",
+    "version": "1.0.0",
+    "description": "Multi-protocol web client for FTP, MySQL, and SSH connections.",
+    "author": "Arizu Studio",
+    "website": "https://arizu.id",
+    "email": "ariefzufar@arizu.id",
+    "license": "Proprietary"
+}

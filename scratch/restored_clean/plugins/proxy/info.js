@@ -1,0 +1,8 @@
+{
+    "name": "FTP Proxy Connection",
+    "slug": "proxy",
+    "version": "1.0.0",
+    "description": "Enables connection to FTP servers through socks4, socks5, http, or https proxies.",
+    "author": "Arizu Studio",
+    "website": "https://arizu.id"
+}
