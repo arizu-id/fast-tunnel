@@ -3,7 +3,7 @@ import { showToast } from './ui.js';
 export function initMonacoEditor() {
     require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs' } });
     require(['vs/editor/editor.main'], function() {
-        state.editor = monaco.editor.create(document.getElementById('monaco-container'), {
+        state.editor = monaco.editor.create(document.getElementById('monacoEditorEl'), {
             value: '',
             language: 'plaintext',
             theme: 'vs-dark',
@@ -177,9 +177,10 @@ export function openFile(path, name) {
     renderTabs();
     switchTab(path);
     $.ajax({
-        url: 'api.php?action=ftp_read_file',
+        url: 'api.php?action=read_file',
         type: 'POST',
         contentType: 'application/json',
+        dataType: 'json',
         data: JSON.stringify({ file: path }),
         success: function(res) {
             if (res.success) {
@@ -212,9 +213,10 @@ export function saveCurrentFile(callback) {
     btn.html('<i class="bi bi-arrow-repeat spin me-2"></i>Saving...');
     btn.prop('disabled', true);
     $.ajax({
-        url: 'api.php?action=ftp_write_file',
+        url: 'api.php?action=write_file',
         type: 'POST',
         contentType: 'application/json',
+        dataType: 'json',
         data: JSON.stringify({ file: state.currentOpenedFile, content: content }),
         success: function(res) {
             if (res.success) {

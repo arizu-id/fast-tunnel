@@ -29,10 +29,19 @@ $(document).ready(function() {
         $(this).find('i').toggleClass('bi-eye bi-eye-slash');
     });
     $('#importPasswordModal').on('shown.bs.modal', () => { $('#importPasswordInput').val('').trigger('focus'); });
-    $('#btnToggleSidebar, .btn-toggle-sidebar').click(function() {
-        const $left = $('.panel-left, .file-explorer');
+    $('#btnToggleSessions').click(function() {
+        const $left = $('.panel-left');
         $left.toggleClass('show-mobile');
         if ($left.hasClass('show-mobile')) {
+            $('#sidebarBackdrop').removeClass('d-none');
+        } else {
+            $('#sidebarBackdrop').addClass('d-none');
+        }
+    });
+    $('#btnToggleExplorer').click(function() {
+        const $explorer = $('.file-explorer');
+        $explorer.toggleClass('show-mobile');
+        if ($explorer.hasClass('show-mobile')) {
             $('#sidebarBackdrop').removeClass('d-none');
         } else {
             $('#sidebarBackdrop').addClass('d-none');
@@ -66,26 +75,36 @@ $(document).ready(function() {
     $('#addSessionModal').on('hidden.bs.modal', function() {
         $('#addSessionForm')[0].reset();
         $('#proxyFields').addClass('d-none');
+        $('.protocol-group').addClass('d-none');
+        $('#ftpFormFields').removeClass('d-none');
     });
     $('#sessionProtocol').change(function() {
         const proto = $(this).val();
-        $('#ftpFields').toggleClass('d-none', proto !== 'ftp');
-        $('#mysqlFields').toggleClass('d-none', proto !== 'mysql');
-        $('#sshFields').toggleClass('d-none', proto !== 'ssh');
+        $('.protocol-group').addClass('d-none');
+        if (proto === 'ftp') $('#ftpFormFields').removeClass('d-none');
+        else if (proto === 'mysql') $('#mysqlFormFields').removeClass('d-none');
+        else if (proto === 'ssh') $('#sshFormFields').removeClass('d-none');
     });
-    $('#btnNewFile').click(function() {
+    $('#btnAddFile').click(function() {
         const path = state.selectedPath || state.currentPath;
         const basePath = state.selectedIsDir ? path : getParentPath(path);
         promptInput('New File Name', function(name) {
             createNewFile(basePath, name);
         });
     });
-    $('#btnNewFolder').click(function() {
+    $('#btnAddFolder').click(function() {
         const path = state.selectedPath || state.currentPath;
         const basePath = state.selectedIsDir ? path : getParentPath(path);
         promptInput('New Folder Name', function(name) {
             createNewFolder(basePath, name);
         });
+    });
+    $('#btnRefresh').click(function() {
+        const path = state.selectedPath || state.currentPath || '/';
+        expandAndRefreshFolder(path);
+    });
+    $('#btnSaveFile').click(function() {
+        saveCurrentFile();
     });
     $(window).bind('keydown', function(event) {
         if (event.ctrlKey || event.metaKey) {

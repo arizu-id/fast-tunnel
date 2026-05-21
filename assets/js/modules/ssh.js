@@ -34,7 +34,8 @@ export function connectSsh(sessionId, session) {
         $('#ftpSidebar').addClass('d-none');
         $('#dbSidebar').addClass('d-none');
         $('#sshSidebar').removeClass('d-none').addClass('d-flex');
-        $('#fileTree').empty();
+        buildSshSidebar(session);
+        $('#fileList').empty();
         $('#currentPath').text('/');
         if (state.openTabs && state.openTabs.length > 0) {
             state.openTabs.forEach(t => { if (t.model) t.model.dispose(); });
@@ -43,17 +44,31 @@ export function connectSsh(sessionId, session) {
         }
         $('#editorTabs').empty();
         $('.editor-tabs-container').addClass('d-none');
-        $('#monaco-container').addClass('d-none').removeClass('d-flex');
+        $('#monaco-container').addClass('d-none');
+        $('#terminal-container').removeClass('d-none').addClass('d-flex');
+        $('#editorPlaceholder').addClass('d-none');
+        $('#db-container').addClass('d-none');
         initTerminal(session);
         loadServerInfo();
     })
     .catch(err => {
-        showToast(err.message || 'Connection failed', 'danger');
-        $('#connectionStatus').html(`<span class="text-danger"><i class="bi bi-x-circle me-2"></i>${err.message}</span>`);
-    })
-    .finally(() => {
+        showToast(err.message || 'SSH connection failed', 'danger');
+        $('#connectionStatus').html(`<span class="text-danger"><i class="bi bi-x-circle me-2"></i>${err.message || 'Connection failed'}</span>`);
         state.isConnecting = false;
     });
+}
+function buildSshSidebar(session) {
+    const $sidebar = $('#sshSidebar');
+    $sidebar.empty().html(`
+        <div class="p-2 border-bottom border-secondary d-flex justify-content-between align-items-center bg-dark panel-header">
+            <span class="small text-muted text-uppercase fw-semibold ms-2" style="letter-spacing:0.5px;">Server Info</span>
+            <button class="btn btn-sm btn-icon text-danger btn-ssh-disconnect" title="Disconnect"><i class="bi bi-power"></i></button>
+        </div>
+        <div class="flex-grow-1 overflow-auto p-3" id="sshServerInfo">
+            <div class="text-muted small p-2 opacity-50"><i class="bi bi-arrow-repeat spin me-1"></i>Loading server info...</div>
+        </div>
+    `);
+    $sidebar.find('.btn-ssh-disconnect').on('click', () => disconnectSsh());
 }
 function loadServerInfo() {
     fetch('api.php?action=ssh_get_server_info', {
@@ -183,8 +198,8 @@ function initTerminal(session) {
     });
     term.write('\x1b[1;32mWelcome to Fast Tunnel · Realtime SSH Terminal\x1b[0m\r\n');
     term.write(`\x1b[0;90mConnected to \x1b[0;36m${session.user}@${session.host}\x1b[0;90m via PTY\x1b[0m\r\n\r\n`);
-    const $input = $('#sshCommandInput');
-    const $btn = $('#sshSendBtn');
+    const $input = $('#sshConsoleInput');
+    const $btn = $('#btnSshSendCmd');
     $input.off('keydown').on('keydown', function(e) {
         if (e.key === 'Enter') {
             e.preventDefault();
@@ -225,7 +240,6 @@ function initTerminal(session) {
     container.addEventListener('click', () => {
         term.focus();
     });
-    $('#sshSidebar').find('.btn-ssh-disconnect').off('click').on('click', () => disconnectSsh());
 }
 function disconnectSsh() {
     if (sseSource) {
@@ -241,6 +255,7 @@ function disconnectSsh() {
         headers: { 'Content-Type': 'application/json' },
         body: '{}'
     }).catch(() => {});
+    $('#terminal-container').addClass('d-none').removeClass('d-flex');
     $('#workspaceArea').addClass('d-none');
     $('#welcomeArea').removeClass('d-none');
     $('#sshSidebar').addClass('d-none').removeClass('d-flex');

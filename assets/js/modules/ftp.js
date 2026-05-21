@@ -6,9 +6,10 @@ export function connectSession(id, sessionData) {
     state.currentProtocol = 'ftp';
     $('#connectionStatus').html(`<span class="text-info"><i class="bi bi-arrow-repeat spin me-2 d-inline-block"></i>Connecting to ${sessionData.name}...</span>`);
     $.ajax({
-        url: 'api.php?action=ftp_connect',
+        url: 'api.php?action=connect',
         type: 'POST',
         contentType: 'application/json',
+        dataType: 'json',
         data: JSON.stringify({
             host: sessionData.host,
             port: sessionData.port,
@@ -19,7 +20,8 @@ export function connectSession(id, sessionData) {
             proxy_port: sessionData.proxy_port || 0,
             proxy_type: sessionData.proxy_type || '',
             proxy_user: sessionData.proxy_user || '',
-            proxy_password: sessionData.proxy_password ? atob(sessionData.proxy_password) : ''
+            proxy_password: sessionData.proxy_password ? atob(sessionData.proxy_password) : '',
+            dir: '/'
         }),
         success: function(res) {
             if (res.success) {
@@ -34,15 +36,23 @@ export function connectSession(id, sessionData) {
                 $('#ftpSidebar').removeClass('d-none');
                 $('#dbSidebar').addClass('d-none');
                 $('#sshSidebar').addClass('d-none').removeClass('d-flex');
-                loadRoot();
+                $('#terminal-container').addClass('d-none').removeClass('d-flex');
+                $('#db-container').addClass('d-none');
+                $('#monaco-container').removeClass('d-none');
+                $('#editorPlaceholder').removeClass('d-none');
+                const $tree = $('#fileList');
+                $tree.empty();
+                renderTreeItems(res.files || [], $tree, '/');
             } else {
                 showToast(res.error || 'Connection failed', 'danger');
                 $('#connectionStatus').html(`<span class="text-danger"><i class="bi bi-x-circle me-2"></i>${res.error || 'Connection failed'}</span>`);
             }
         },
-        error: function() {
-            showToast('Connection error', 'danger');
-            $('#connectionStatus').html('<span class="text-danger"><i class="bi bi-x-circle me-2"></i>Connection error</span>');
+        error: function(xhr) {
+            let msg = 'Connection error';
+            try { msg = JSON.parse(xhr.responseText).error || msg; } catch(e) {}
+            showToast(msg, 'danger');
+            $('#connectionStatus').html(`<span class="text-danger"><i class="bi bi-x-circle me-2"></i>${msg}</span>`);
         }
     });
 }
@@ -60,40 +70,18 @@ export function disconnectUI() {
     state.currentOpenedFile = null;
     renderTabs();
     switchTab(null);
-    $('#fileTree').empty();
+    $('#fileList').empty();
 }
-function loadRoot() {
-    $.ajax({
-        url: 'api.php?action=ftp_list',
-        type: 'POST',
-        contentType: 'application/json',
-        data: JSON.stringify({ path: '/' }),
-        success: function(res) {
-            if (res.success) {
-                const $tree = $('#fileTree');
-                $tree.empty();
-                state.currentPath = '/';
-                renderTreeItems(res.items, $tree, '/');
-            } else {
-                showToast(res.error || 'Failed to load files', 'danger');
-            }
-        }
-    });
-}
-function renderTreeItems(items, $container, parentPath) {
-    if (!items || items.length === 0) {
+function renderTreeItems(files, $container, parentPath) {
+    if (!files || files.length === 0) {
         $container.append('<div class="tree-empty text-muted small ps-2 opacity-50">Empty</div>');
         return;
     }
-    const sorted = [...items].sort((a, b) => {
-        if (a.isDir !== b.isDir) return a.isDir ? -1 : 1;
-        return a.name.localeCompare(b.name);
-    });
-    sorted.forEach(item => {
+    files.forEach(item => {
         const fullPath = (parentPath === '/' ? '' : parentPath) + '/' + item.name;
         if (item.isDir) {
             const $item = $(`
-                <div class="tree-item folder-item" data-path="${fullPath}" data-expanded="false">
+                <div class="tree-item folder-item" data-path="${fullPath}" data-is-dir="true" data-expanded="false">
                     <div class="tree-row d-flex align-items-center">
                         <span class="chevron-icon me-1"><i class="bi bi-chevron-right"></i></span>
                         <i class="bi bi-folder2 me-2 text-warning"></i>
@@ -143,14 +131,15 @@ export function toggleFolder(path, $item, $children) {
         if ($children.children().length === 0) {
             $children.html('<div class="text-muted small ps-2 py-1 opacity-50"><i class="bi bi-arrow-repeat spin me-1"></i>Loading...</div>');
             $.ajax({
-                url: 'api.php?action=ftp_list',
+                url: 'api.php?action=list',
                 type: 'POST',
                 contentType: 'application/json',
-                data: JSON.stringify({ path: path }),
+                dataType: 'json',
+                data: JSON.stringify({ dir: path }),
                 success: function(res) {
                     $children.empty();
                     if (res.success) {
-                        renderTreeItems(res.items, $children, path);
+                        renderTreeItems(res.files || [], $children, path);
                     } else {
                         $children.html(`<div class="text-danger small ps-2 opacity-75">${res.error || 'Error'}</div>`);
                     }
@@ -168,13 +157,14 @@ export function expandAndRefreshFolder(path) {
     const $children = $item.find('.tree-children').first();
     $children.empty();
     $.ajax({
-        url: 'api.php?action=ftp_list',
+        url: 'api.php?action=list',
         type: 'POST',
         contentType: 'application/json',
-        data: JSON.stringify({ path: path }),
+        dataType: 'json',
+        data: JSON.stringify({ dir: path }),
         success: function(res) {
             if (res.success) {
-                renderTreeItems(res.items, $children, path);
+                renderTreeItems(res.files || [], $children, path);
             }
         }
     });
@@ -182,10 +172,11 @@ export function expandAndRefreshFolder(path) {
 export function createNewFile(path, name) {
     const fullPath = (path === '/' ? '' : path) + '/' + name;
     $.ajax({
-        url: 'api.php?action=ftp_create_file',
+        url: 'api.php?action=write_file',
         type: 'POST',
         contentType: 'application/json',
-        data: JSON.stringify({ path: fullPath }),
+        dataType: 'json',
+        data: JSON.stringify({ file: fullPath, content: '' }),
         success: function(res) {
             if (res.success) {
                 showToast('File created');
@@ -200,10 +191,11 @@ export function createNewFile(path, name) {
 export function createNewFolder(path, name) {
     const fullPath = (path === '/' ? '' : path) + '/' + name;
     $.ajax({
-        url: 'api.php?action=ftp_mkdir',
+        url: 'api.php?action=create_dir',
         type: 'POST',
         contentType: 'application/json',
-        data: JSON.stringify({ path: fullPath }),
+        dataType: 'json',
+        data: JSON.stringify({ dir: fullPath }),
         success: function(res) {
             if (res.success) {
                 showToast('Folder created');
@@ -218,22 +210,21 @@ export function renameItem(path, newName, isDir) {
     const parent = getParentPath(path);
     const newPath = (parent === '/' ? '' : parent) + '/' + newName;
     $.ajax({
-        url: 'api.php?action=ftp_rename',
+        url: 'api.php?action=rename',
         type: 'POST',
         contentType: 'application/json',
-        data: JSON.stringify({ from: path, to: newPath }),
+        dataType: 'json',
+        data: JSON.stringify({ old: path, new: newPath }),
         success: function(res) {
             if (res.success) {
                 showToast('Renamed successfully');
                 expandAndRefreshFolder(parent);
-                const oldPath = path;
                 if (!isDir) {
-                    const tab = state.openTabs.find(t => t.path === oldPath);
+                    const tab = state.openTabs.find(t => t.path === path);
                     if (tab) {
                         tab.path = newPath;
                         tab.name = newName;
                         if (tab.model) {
-                            const newLang = getFileIconClass ? newName : newName;
                             try {
                                 const langId = newName.split('.').pop().toLowerCase();
                                 const langMap = {'js':'javascript','json':'json','ts':'typescript','html':'html','css':'css','php':'php','py':'python','md':'markdown','sql':'sql','xml':'xml','yml':'yaml','yaml':'yaml'};
@@ -242,7 +233,7 @@ export function renameItem(path, newName, isDir) {
                         }
                         renderTabs();
                     }
-                    if (state.currentOpenedFile === oldPath) {
+                    if (state.currentOpenedFile === path) {
                         state.currentOpenedFile = newPath;
                     }
                 }
@@ -262,9 +253,10 @@ export function deleteItem(path, isDir) {
         function() {
             const parent = getParentPath(path);
             $.ajax({
-                url: 'api.php?action=ftp_delete',
+                url: 'api.php?action=delete',
                 type: 'POST',
                 contentType: 'application/json',
+                dataType: 'json',
                 data: JSON.stringify({ path: path, isDir: isDir }),
                 success: function(res) {
                     if (res.success) {
