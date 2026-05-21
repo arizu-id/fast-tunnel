@@ -52,6 +52,7 @@ export function connectSsh(sessionId, session) {
         $('#monaco-container').addClass('d-none');
         $('#terminal-container').removeClass('d-none').addClass('d-flex');
         $('#editorPlaceholder').addClass('d-none');
+        $('#floatingActionPanel').addClass('d-none');
         $('#db-container').addClass('d-none');
         initTerminal(session);
         loadServerInfo();

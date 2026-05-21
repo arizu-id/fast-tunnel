@@ -623,6 +623,10 @@ html, body {
     color: var(--text-dim);
     transition: all 0.15s;
     cursor: pointer;
+    background: transparent;
+    border: none;
+    padding: 0;
+    outline: none;
 }
 
 .editor-tab .btn-close-tab:hover {

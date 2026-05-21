@@ -20,6 +20,12 @@ exit;
 }
 $pos=0;
 $lastKeepalive=time();
+$waited=0;
+while($pidFile&&!file_exists($pidFile)&&$waited<50){
+usleep(100000);
+$waited++;
+clearstatcache(true,$pidFile);
+}
 while($pidFile&&file_exists($pidFile)&&!file_exists($killFile??'')){
 clearstatcache(true,$outputFile);
 $size=@filesize($outputFile);
@@ -120,6 +126,7 @@ pclose(popen($cmd,'r'));
 }else{
 exec("$phpBin '$streamScript' '$sessionFile' > /dev/null 2>&1 &");
 }
+usleep(300000);
 $_SESSION['ssh_auth']=[
 'host'=>$host,'port'=>$port,
 'user'=>$user,'password'=>$password

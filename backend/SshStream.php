@@ -20,6 +20,7 @@ try {
         file_put_contents($outputFile, "\r\n\x1b[1;31mAuthentication failed.\x1b[0m\r\n", FILE_APPEND);
         exit(1);
     }
+    $ssh->enablePTY();
     $ssh->setWindowSize(220, 50);
     $output = $ssh->read('', SSH2::READ_NEXT);
     if (is_string($output) && $output !== '') {
