@@ -1,2 +1,79 @@
-"import { state } from './state.js';\nimport { selectItem } from './helpers.js';\nimport { promptInput } from './ui.js';\nimport { toggleFolder, loadRoot, downloadFile, createNewFile, createNewFolder, renameItem, deleteItem } from './ftp.js';\nimport { openFile } from './editor.js';\n\nexport function ctxIcon(biClass, extraClass) {\n    const cls = extraClass ? ` ${extraClass}` : '';\n    return `<i class=\"bi ${biClass} ctx-menu-icon${cls}\"></i>`;\n}\n\nexport function initContextMenu() {\n    $.contextMenu({\n        selector: '.tree-item',\n        isHtmlName: true,\n        build: function($trigger, e) {\n            const path   = $trigger.attr('data-path');\n            const name   = $trigger.attr('data-name');\n            const isDir  = $trigger.attr('data-isdir') === 'true';\n\n            selectItem(path, isDir);\n\n            const openIcon = isDir ? 'bi-folder2-open' : 'bi-pencil-square';\n            const openLabel = isDir ? 'Open Folder' : 'Open File';\n\n            const items = {\n                open: {\n                    name: `${ctxIcon(openIcon)} ${openLabel}`,\n                    callback: function() {\n                        if (isDir) {\n                            toggleFolder(path, $trigger, $trigger.next('.folder-children'));\n                        } else {\n                            openFile(path, name);\n                        }\n                    }\n                },\n                rename: {\n                    name: `${ctxIcon('bi-pencil')} Rename`,\n                    callback: function() { renameItem(path, name); }\n                }\n            };\n\n            if (!isDir) {\n                items.download = {\n                    name: `${ctxIcon('bi-download')} Download`,\n                    callback: function() { downloadFile(path, name); }\n                };\n            }\n\n            items.sep1 = '--------';\n            items.delete = {\n                name: `${ctxIcon('bi-trash3', 'text-danger')} <span style=\"color:#f87171;\">Delete</span>`,\n 
-<truncated 1434 bytes>
+import { state } from './state.js';
+import { selectItem } from './helpers.js';
+import { promptInput } from './ui.js';
+import { toggleFolder, loadRoot, downloadFile, createNewFile, createNewFolder, renameItem, deleteItem } from './ftp.js';
+import { openFile } from './editor.js';
+export function ctxIcon(biClass, extraClass) {
+    const cls = extraClass ? ` ${extraClass}` : '';
+    return `<i class="bi ${biClass} ctx-menu-icon${cls}"></i>`;
+}
+export function initContextMenu() {
+    $.contextMenu({
+        selector: '.tree-item',
+        isHtmlName: true,
+        build: function($trigger, e) {
+            const path   = $trigger.attr('data-path');
+            const name   = $trigger.attr('data-name');
+            const isDir  = $trigger.attr('data-isdir') === 'true';
+            selectItem(path, isDir);
+            const openIcon = isDir ? 'bi-folder2-open' : 'bi-pencil-square';
+            const openLabel = isDir ? 'Open Folder' : 'Open File';
+            const items = {
+                open: {
+                    name: `${ctxIcon(openIcon)} ${openLabel}`,
+                    callback: function() {
+                        if (isDir) {
+                            toggleFolder(path, $trigger, $trigger.next('.folder-children'));
+                        } else {
+                            openFile(path, name);
+                        }
+                    }
+                },
+                rename: {
+                    name: `${ctxIcon('bi-pen
+                    name: `${ctxIcon('bi-download')} Download`,
+                    callback: function() { downloadFile(path, name); }
+                };
+            }
+            items.sep1 = '--------';
+            items.delete = {
+                name: `${ctxIcon('bi-trash3', 'text-danger')} <span style="color:#f87171;">Delete</span>`,
+                className: 'ctx-item-delete',
+                callback: function() { deleteItem(path, isDir); }
+            };
+            return { items };
+        }
+    });
+    $.contextMenu({
+        selector: '.file-explorer',
+        isHtmlName: true,
+        build: function($trigger, e) {
+            if ($(e.target).closest('.tree-item').length > 0) {
+                return false;
+            }
+            return {
+                items: {
+                    new_file: {
+                        name: `${ctxIcon('bi-file-earmark-plus')} New File`,
+                        callback: function() {
+                            selectItem('/', true);
+                            promptInput('New File Name:', createNewFile);
+                        }
+                    },
+                    new_folder: {
+                        name: `${ctxIcon('bi-folder-plus')} New Folder`,
+                        callback: function() {
+                            selectItem('/', true);
+                            promptInput('New Folder Name:', createNewFolder);
+                        }
+                    },
+                    sep1: '--------',
+                    refresh: {
+                        name: `${ctxIcon('bi-arrow-clockwise')} Refresh`,
+                        callback: function() { loadRoot(); }
+                    }
+                }
+            };
+        }
+    });
+}

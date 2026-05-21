@@ -34,6 +34,9 @@ try {
         if ($output === false) {
             break;
         }
+        if ($output === true && !$ssh->isTimeout()) {
+            break;
+        }
         if (is_string($output) && $output !== '') {
             file_put_contents($outputFile, $output, FILE_APPEND);
             $idleStart = time();

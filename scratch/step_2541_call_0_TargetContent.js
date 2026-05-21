@@ -1,0 +1,1 @@
+"let commandLineBuffer = '';\nlet commandHistory = [];\nlet historyIndex = -1;\n\nexport function connectSsh(sessionId, session) {\n    state.isConnecting = true;\n    state.currentSessionId = sessionId;\n    state.currentProtocol = 'ssh';\n    commandLineBuffer = '';"

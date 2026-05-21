@@ -24,10 +24,8 @@ export function escapeHtml(text) {
 export function switchDbTab(tab) {
     $('.db-tab-btn').removeClass('active');
     $(`.db-tab-btn[data-tab="${tab}"]`).addClass('active');
-    $('.db-tab-pane').addClass('d-none').removeClass('d-flex');
-    const $pane = $(`#dbPane${tab.charAt(0).toUpperCase() + tab.slice(1)}`);
-    $pane.removeClass('d-none');
-    if (tab === 'browse') $pane.addClass('d-flex');
+    $('.db-tab-pane').addClass('d-none');
+    $(`#dbPane${tab.charAt(0).toUpperCase() + tab.slice(1)}`).removeClass('d-none');
 }
 export function showDbConfirm(title, message, onConfirm) {
     dbState.confirmCallback = onConfirm;

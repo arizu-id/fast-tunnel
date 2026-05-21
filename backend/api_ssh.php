@@ -41,6 +41,18 @@ $lastKeepalive=time();
 }
 usleep(50000);
 }
+clearstatcache(true,$outputFile);
+$size=@filesize($outputFile);
+if($size&&$size>$pos){
+$fh=fopen($outputFile,'rb');
+fseek($fh,$pos);
+$chunk=fread($fh,$size-$pos);
+fclose($fh);
+if($chunk!==false&&$chunk!==''){
+echo "data: ".json_encode(['output'=>$chunk])."\n\n";
+flush();
+}
+}
 echo "data: ".json_encode(['closed'=>true])."\n\n";
 flush();
 exit;

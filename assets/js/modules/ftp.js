@@ -1,2 +1,72 @@
-"import { state } from './state.js';\nimport { selectItem, getParentPath } from './helpers.js';\nimport { showToast, showConfirmModal, promptInput } from './ui.js';\nimport { openFile, closeTab, getFileIconClass, renderTabs, switchTab } from './editor.js';\n\nexport function connectSession(id, sessionData) {\n    $('#connectionStatus').html(`<span class=\"text-info\"><i class=\"bi bi-arrow-repeat spin me-2 d-inline-block\"></i>Connecting to ${sessionData.name}...</span>`);\n\n    $.ajax({\n        url: 'api/connect',\n        type: 'POST',\n        contentType: 'application/json',\n        data: JSON.stringify({\n            host: sessionData.host,\n            port: sessionData.port,\n            user: sessionData.user,\n            password: atob(sessionData.password),\n            dir: '/'\n        }),\n        success: function(res) {\n            if (res.success) {\n                state.currentSessionId = id;\n                state.currentPath = res.pwd;\n                state.selectedPath = '/';\n                state.selectedIsDir = true;\n                $('#currentPath').text('/').attr('title', '/');\n\n                $('#connectionStatus').html(`<span class=\"text-success\"><i class=\"bi bi-link-45deg me-2 fs-5\"></i>Connected to ${sessionData.name}</span>`);\n                $('#welcomeArea').addClass('d-none');\n                $('#workspaceArea').removeClass('d-none');\n\n                loadRoot();\n            } else {\n                $('#connectionStatus').html(`<span class=\"text-danger\"><i class=\"bi bi-exclamation-triangle me-2\"></i>Connection failed: ${res.error}</span>`);\n                showToast(res.error, 'danger');\n            }\n        },\n        error: function(xhr) {\n            const err = xhr.responseJSON ? xhr.responseJSON.error : 'Unknown error';\n            $('#connectionStatus').html(`<span class=\"text-danger\"><i class=\"bi bi-exclamation-triangle me-2\"></i>Error: ${err}</span>`);\n            showToast(err, 'danger');\n        }\n    });\n}\n\nexport function disco
-<truncated 12079 bytes>
+import { state } from './state.js';
+import { selectItem, getParentPath } from './helpers.js';
+import { showToast, showConfirmModal, promptInput } from './ui.js';
+import { openFile, closeTab, getFileIconClass, renderTabs, switchTab } from './editor.js';
+export function connectSession(id, sessionData) {
+    $('#connectionStatus').html(`<span class="text-info"><i class="bi bi-arrow-repeat spin me-2 d-inline-block"></i>Connecting to ${sessionData.name}...</span>`);
+    $.ajax({
+        url: 'api/connect',
+        type: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({
+            host: sessionData.host,
+            port: sessionData.port,
+            user: sessionData.user,
+            password: atob(sessionData.password),
+            dir: '/'
+        }),
+        success: function(res) {
+            if (res.success) {
+                state.currentSessionId = id;
+                state.currentPath = res.pwd;
+                state.selectedPath = '/';
+                state.selectedIsDir = true;
+                $('#currentPath').text('/').attr('title', '/');
+                $('#connectionStatus').html(`<span class="text-success"><i class="bi bi-link-45deg me-2 fs-5"></i>Connected to ${sessionData.name}</span>`);
+                $('#welcomeArea').addClass('d-none');
+                $('#workspaceArea').removeClass('d-none');
+                loa
+                        if (tab.model) {
+                            const newLang = getLanguageFromExtension(newName);
+                            monaco.editor.setModelLanguage(tab.model, newLang);
+                        }
+                        renderTabs();
+                    }
+                    if (state.currentOpenedFile === oldPath) {
+                        state.currentOpenedFile = newPath;
+                    }
+                } else showToast(res.error, 'danger');
+            }
+        });
+    });
+}
+export function deleteItem(path, isDir) {
+    const itemType = isDir ? 'folder' : 'file';
+    showConfirmModal(
+        `Delete ${itemType === 'folder' ? 'Folder' : 'File'}`,
+        `Are you sure you want to delete this ${itemType} "${path}"?`,
+        'Delete',
+        'btn-danger',
+        function() {
+            const parent = getParentPath(path);
+            $.ajax({
+                url: 'api/delete',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ path: path, isDir: isDir }),
+                success: function(res) {
+                    if (res.success) {
+                        expandAndRefreshFolder(parent);
+                        if (isDir) {
+                            const prefix = path.endsWith('/') ? path : path + '/';
+                            const tabsToClose = state.openTabs.filter(t => t.path.startsWith(prefix));
+                            tabsToClose.forEach(t => closeTab(t.path));
+                        } else {
+                            closeTab(path);
+                        }
+                    } else showToast(res.error, 'danger');
+                }
+            });
+        }
+    );
+}

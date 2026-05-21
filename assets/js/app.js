@@ -1,2 +1,70 @@
-"import { state } from './modules/state.js';\nimport { getParentPath } from './modules/helpers.js';\nimport { promptInput } from './modules/ui.js';\nimport { loadSessions, saveSession, exportSessions, handleImportFile, doExportWithPassword, doImportWithPassword } from './modules/sessions.js';\nimport { expandAndRefreshFolder, createNewFile, createNewFolder } from './modules/ftp.js';\nimport { initMonacoEditor, saveCurrentFile, closeTab } from './modules/editor.js';\nimport { initContextMenu } from './modules/context-menu.js';\nimport { runCustomQuery } from './modules/db.js';\n\n$(document).ready(function() {\n    loadSessions();\n    initMonacoEditor();\n    initContextMenu();\n\n    $('#btnSaveSession').click(saveSession);\n    $('#btnExportSessions').click(exportSessions);\n    $('#btnImportSessions').click(() => $('#importFileInput').trigger('click'));\n    $('#importFileInput').change(handleImportFile);\n\n    $('#btnConfirmExport').click(doExportWithPassword);\n    $('#btnToggleExportPassword').click(function() {\n        const inp = $('#exportPasswordInput');\n        const isPass = inp.attr('type') === 'password';\n        inp.attr('type', isPass ? 'text' : 'password');\n        $(this).find('i').toggleClass('bi-eye bi-eye-slash');\n    });\n    $('#exportPasswordModal').on('shown.bs.modal', () => { $('#exportPasswordInput').val('').trigger('focus'); });\n\n    $('#btnConfirmImport').click(doImportWithPassword);\n    $('#btnToggleImportPassword').click(function() {\n        const inp = $('#importPasswordInput');\n        const isPass = inp.attr('type') === 'password';\n        inp.attr('type', isPass ? 'text' : 'password');\n        $(this).find('i').toggleClass('bi-eye bi-eye-slash');\n    });\n    $('#importPasswordModal').on('shown.bs.modal', () => { $('#importPasswordInput').val('').trigger('focus'); });\n\n    $('#btnRefresh').click(() => {\n        const path = state.selectedIsDir ? state.selectedPath : getParentPath(state.selectedPath);\n        expandAndRefreshFolder(path);\n    });\n\n    $('#btn
-<truncated 3942 bytes>
+import { state } from './modules/state.js';
+import { getParentPath } from './modules/helpers.js';
+import { promptInput } from './modules/ui.js';
+import { loadSessions, saveSession, exportSessions, handleImportFile, doExportWithPassword, doImportWithPassword } from './modules/sessions.js';
+import { expandAndRefreshFolder, createNewFile, createNewFolder } from './modules/ftp.js';
+import { initMonacoEditor, saveCurrentFile, closeTab } from './modules/editor.js';
+import { initContextMenu } from './modules/context-menu.js';
+$(document).ready(function() {
+    loadSessions();
+    initMonacoEditor();
+    initContextMenu();
+    $('#btnSaveSession').click(saveSession);
+    $('#btnExportSessions').click(exportSessions);
+    $('#btnImportSessions').click(() => $('#importFileInput').trigger('click'));
+    $('#importFileInput').change(handleImportFile);
+    $('#btnConfirmExport').click(doExportWithPassword);
+    $('#btnToggleExportPassword').click(function() {
+        const inp = $('#exportPasswordInput');
+        const isPass = inp.attr('type') === 'password';
+        inp.attr('type', isPass ? 'text' : 'password');
+        $(this).find('i').toggleClass('bi-eye bi-eye-slash');
+    });
+    $('#exportPasswordModal').on('shown.bs.modal', () => { $('#exportPasswordInput').val('').trigger('focus'); });
+    $('#btnConfirmImport').click(doImportWithPassword);
+    $('#btnToggleImportPassword').click
+            $('#sidebarBackdrop').removeClass('d-none');
+        } else {
+            $('#sidebarBackdrop').addClass('d-none');
+        }
+    });
+    $('#sidebarBackdrop').click(function() {
+        $('.panel-left, .file-explorer').removeClass('show-mobile');
+        $('#sidebarBackdrop').addClass('d-none');
+    });
+    $(document).on('click', '.session-item, .tree-item.file-item', function() {
+        if (window.innerWidth < 768) {
+            $('.panel-left, .file-explorer').removeClass('show-mobile');
+            $('#sidebarBackdrop').addClass('d-none');
+        }
+    });
+    const observer = new MutationObserver(function() {
+        if ($('#workspaceArea').hasClass('d-none')) {
+            $('#btnToggleExplorer').addClass('d-none');
+        } else {
+            $('#btnToggleExplorer').removeClass('d-none');
+        }
+    });
+    observer.observe(document.getElementById('workspaceArea'), { attributes: true, attributeFilter: ['class'] });
+    $('#useProxy').change(function() {
+        if (this.checked) {
+            $('#proxyFields').removeClass('d-none');
+        } else {
+            $('#proxyFields').addClass('d-none');
+        }
+    });
+    $('#addSessionModal').on('hidden.bs.modal', function() {
+        $('#addSessionForm')[0].reset();
+        $('#proxyFields').addClass('d-none');
+    });
+    $(window).bind('keydown', function(event) {
+        if (event.ctrlKey || event.metaKey) {
+            switch (String.fromCharCode(event.which).toLowerCase()) {
+                case 's':
+                    event.preventDefault();
+                    saveCurrentFile();
+                    break;
+            }
+        }
+    });
+});

@@ -1,2 +1,58 @@
-"let inputCallback = null;\nlet confirmCallback = null;\n\nexport function showToast(message, type = 'success') {\n    const typeClass = type === 'success' ? 'toast-success' : 'toast-danger';\n    const iconClass = type === 'success' ? 'bi-check-circle-fill' : 'bi-exclamation-triangle-fill';\n    const toastHtml = `\n        <div class=\"custom-toast ${typeClass}\">\n            <div class=\"toast-content\">\n                <i class=\"bi ${iconClass} toast-icon\"></i>\n                <span class=\"toast-msg fw-medium\">${message}</span>\n            </div>\n            <div class=\"toast-progress-bar\"></div>\n        </div>\n    `;\n    const $toast = $(toastHtml).prependTo('.toast-container');\n    $toast[0].offsetHeight;\n    $toast.addClass('show');\n    setTimeout(() => {\n        $toast.addClass('closing').removeClass('show');\n        setTimeout(() => $toast.remove(), 400);\n    }, 3000);\n}\n\nexport function promptInput(title, callback) {\n    $('#inputModalTitle').text(title);\n    $('#inputModalValue').val('');\n    inputCallback = callback;\n    const modal = new bootstrap.Modal(document.getElementById('inputModal'));\n    modal.show();\n    $('#inputModal').on('shown.bs.modal', function () {\n        $('#inputModalValue').trigger('focus');\n    });\n}\n\nexport function showConfirmModal(title, message, btnText, btnClass, callback) {\n    $('#confirmModalTitle').text(title);\n    $('#confirmModalMessage').text(message);\n    const $btn = $('#btnConfirmModalExecute');\n    $btn.text(btnText || 'Confirm');\n    $btn.removeClass('btn-danger btn-primary btn-success btn-warning btn-info btn-secondary btn-dark')\n        .addClass(btnClass || 'btn-danger');\n    confirmCallback = callback;\n    const modal = new bootstrap.Modal(document.getElementById('confirmModal'));\n    modal.show();\n}\n\n$(document).ready(function() {\n    $('#btnInputModalConfirm').click(function() {\n        const val = $('#inputModalValue').val();\n        if (val && inputCallback) {\n            inputCallback(val);\n        }\n 
-<truncated 323 bytes>
+let inputCallback = null;
+let confirmCallback = null;
+export function showToast(message, type = 'success') {
+    const typeClass = type === 'success' ? 'toast-success' : 'toast-danger';
+    const iconClass = type === 'success' ? 'bi-check-circle-fill' : 'bi-exclamation-triangle-fill';
+    const toastHtml = `
+        <div class="custom-toast ${typeClass}">
+            <div class="toast-content">
+                <i class="bi ${iconClass} toast-icon"></i>
+                <span class="toast-msg fw-medium">${message}</span>
+            </div>
+            <div class="toast-progress-bar"></div>
+        </div>
+    `;
+    const $toast = $(toastHtml).prependTo('.toast-container');
+    $toast[0].offsetHeight;
+    $toast.addClass('show');
+    setTimeout(() => {
+        $toast.addClass('closing').removeClass('show');
+        setTimeout(() => $toast.remove(), 400);
+    }, 3000);
+}
+export function promptInput(title, callback) {
+    $('#inputModalTitle').text(title);
+    $('#inputModalValue').val('');
+    inputCallback = callback;
+    const modal = new bootstrap.Modal(document.getElementById('inputModal'));
+    modal.show();
+    $('#inputModal').on('shown.bs.modal', function () {
+        $('#inputModalValue').trigger('focus');
+    });
+}
+export function showConfirmModal(title, message, btnText, btnClass, callback) {
+    $('#confirmModalTitle').text(title);
+    $('#confirmModalMessage').text(message);
+    const $btn = $('#btnConfirmModalExecute');
+    $btn.text(btnText || 'Confirm');
+    $btn.removeClass('btn-danger btn-primary btn-success btn-warning btn-info btn-secondary btn-dark')
+        .addClass(btnClass || 'btn-danger');
+    confirmCallback = callback;
+    const modal = new bootstrap.Modal(document.getElementById('confirmModal'));
+    modal.show();
+}
+$(document).ready(function() {
+    $('#btnInputModalConfirm').click(function() {
+        const val = $('#inputModalValue').val();
+        if (val && inputCallback) {
+            inputCallback(val);
+        }
+        bootstrap.Modal.getInstance(document.getElementById('inputModal')).hide();
+    });
+    $('#btnConfirmModalExecute').click(function() {
+        if (confirmCallback) {
+            confirmCallback();
+        }
+        bootstrap.Modal.getInstance(document.getElementById('confirmModal')).hide();
+    });
+});
