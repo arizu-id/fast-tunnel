@@ -1,6 +1,6 @@
 import { state } from './modules/state.js';
 import { getParentPath } from './modules/helpers.js';
-import { promptInput, showToast } from './modules/ui.js';
+import { promptInput, showToast, showConfirmModal } from './modules/ui.js';
 import { loadSessions, saveSession, exportSessions, handleImportFile, doExportWithPassword, doImportWithPassword } from './modules/sessions.js';
 import { expandAndRefreshFolder, createNewFile, createNewFolder } from './modules/ftp.js';
 import { initMonacoEditor, saveCurrentFile, closeTab } from './modules/editor.js';
@@ -170,6 +170,11 @@ $(document).ready(function() {
     });
 
     $('#btnSaveCredentials').click(function() {
+        $('#editCredentialsForm').submit();
+    });
+
+    $('#editCredentialsForm').submit(function(e) {
+        e.preventDefault();
         const username = $('#editCredUsername').val().trim();
         const password = $('#editCredPassword').val();
         const confirmPassword = $('#editCredConfirmPassword').val();
@@ -193,7 +198,7 @@ $(document).ready(function() {
             }
         }
         
-        const btn = $(this);
+        const btn = $('#btnSaveCredentials');
         btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-2"></span>Saving...');
         
         fetch('/api/auth_update_credentials', {
@@ -220,4 +225,148 @@ $(document).ready(function() {
             btn.prop('disabled', false).html('<i class="bi bi-check-lg me-1"></i>Save Changes');
         });
     });
+
+    // Plugins Manager listeners
+    $('#pluginsModal').on('show.bs.modal', loadPlugins);
+
+    $('#btnTriggerUploadPlugin').click(function() {
+        $('#pluginZipInput').trigger('click');
+    });
+
+    $('#pluginZipInput').change(function() {
+        const file = this.files[0];
+        if (!file) return;
+
+        const formData = new FormData();
+        formData.append('plugin_file', file);
+
+        showToast('Uploading and installing plugin...', 'info');
+
+        const btn = $('#btnTriggerUploadPlugin');
+        const origHtml = btn.html();
+        btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-2"></span>Uploading...');
+
+        fetch('/api/install_plugin', {
+            method: 'POST',
+            body: formData
+        })
+        .then(r => r.json())
+        .then(res => {
+            if (res.success) {
+                showToast('Plugin installed successfully! Reloading page...', 'success');
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
+            } else {
+                showToast(res.error || 'Failed to install plugin.', 'danger');
+            }
+        })
+        .catch(err => {
+            showToast('Network error during upload', 'danger');
+        })
+        .finally(() => {
+            btn.prop('disabled', false).html(origHtml);
+            $('#pluginZipInput').val('');
+        });
+    });
+
+    $(document).on('click', '.btn-delete-plugin', function() {
+        const slug = $(this).data('slug');
+        showConfirmModal(
+            'Delete Plugin',
+            `Are you sure you want to delete the plugin "${slug}"? This will permanently remove its files.`,
+            'Delete Plugin',
+            'btn-danger',
+            function() {
+                showToast('Deleting plugin...', 'info');
+                fetch('/api/delete_plugin', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ slug: slug })
+                })
+                .then(r => r.json())
+                .then(res => {
+                    if (res.success) {
+                        showToast('Plugin deleted successfully! Reloading...', 'success');
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 1500);
+                    } else {
+                        showToast(res.error || 'Failed to delete plugin.', 'danger');
+                    }
+                })
+                .catch(err => {
+                    showToast('Network error deleting plugin', 'danger');
+                });
+            }
+        );
+    });
+
+    function loadPlugins() {
+        const $list = $('#pluginsList');
+        $list.html(`
+            <div class="text-center p-4 text-muted">
+                <div class="spinner-border spinner-border-sm me-2 text-primary" role="status"></div>
+                <span>Loading plugins...</span>
+            </div>
+        `);
+
+        fetch('/api/get_plugins', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({})
+        })
+        .then(r => r.json())
+        .then(res => {
+            if (res.success) {
+                if (res.app) {
+                    $('#appNameText').text(res.app.name || 'Fast Tunnel');
+                    $('#appVersionText').text('v' + (res.app.version || '1.0.0'));
+                    $('#appDescText').text(res.app.description || 'Multi-protocol web client for FTP, MySQL, and SSH connections.');
+                    $('#appAuthorText').text(res.app.author || 'Arizu Studio');
+                    const webUrl = res.app.website || 'arizu.id';
+                    $('#appWebText').text(webUrl).attr('href', webUrl.startsWith('http') ? webUrl : 'https://' + webUrl);
+                }
+
+                $list.empty();
+                if (res.plugins && res.plugins.length > 0) {
+                    res.plugins.forEach(plugin => {
+                        const pluginCard = `
+                            <div class="d-flex align-items-center justify-content-between p-3 rounded-3 border border-secondary" style="background: rgba(39, 39, 42, 0.4);">
+                                <div class="d-flex align-items-center gap-3">
+                                    <div class="rounded-3 bg-secondary bg-opacity-10 p-2.5 text-muted d-flex align-items-center justify-content-center" style="width: 44px; height: 44px; border: 1px solid rgba(255,255,255,0.05);">
+                                        <i class="bi bi-puzzle fs-4 text-primary"></i>
+                                    </div>
+                                    <div>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <span class="fw-semibold text-white">${plugin.name || plugin.slug}</span>
+                                            <span class="badge bg-dark border border-secondary text-muted" style="font-size: 0.7rem; padding: 2px 6px;">v${plugin.version || '0.0.0'}</span>
+                                        </div>
+                                        <p class="text-muted small mb-0" style="margin-top: 2px;">${plugin.description || 'No description provided.'}</p>
+                                        <span class="text-secondary small" style="font-size:0.75rem;">By ${plugin.author || 'Unknown'}</span>
+                                    </div>
+                                </div>
+                                <button class="btn btn-sm btn-icon btn-outline-danger btn-delete-plugin" data-slug="${plugin.slug}" title="Delete Plugin" style="border: 1px solid rgba(239, 68, 68, 0.2); background: rgba(239, 68, 68, 0.05); color: var(--accent-red);">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                        `;
+                        $list.append(pluginCard);
+                    });
+                } else {
+                    $list.html(`
+                        <div class="text-center p-5 text-muted border border-dashed border-secondary rounded-3" style="background: rgba(39, 39, 42, 0.2);">
+                            <i class="bi bi-puzzle-fill mb-3 opacity-25" style="font-size: 2.5rem; display: block;"></i>
+                            <span class="small opacity-50">No plugins installed. Import a ZIP plugin file to get started.</span>
+                        </div>
+                    `);
+                }
+            } else {
+                $list.html(`<div class="alert alert-danger" style="border-radius: 8px;">${res.error || 'Failed to load plugins.'}</div>`);
+            }
+        })
+        .catch(err => {
+            $list.html(`<div class="alert alert-danger" style="border-radius: 8px;">Network or server error loading plugins.</div>`);
+        });
+    }
 });

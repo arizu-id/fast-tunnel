@@ -31,7 +31,7 @@ if (is_dir(__DIR__ . '/plugins')) {
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jquery-contextmenu/2.9.2/jquery.contextMenu.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.css">
-    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/style.css?v=<?php echo time(); ?>">
     <?php
     foreach ($activePlugins as $plugin) {
         if (file_exists(__DIR__ . "/plugins/{$plugin}/plugin.css")) {
@@ -80,11 +80,6 @@ if (is_dir(__DIR__ . '/plugins')) {
                     <ul class="dropdown-menu dropdown-menu-end dropdown-menu-dark border-secondary shadow-lg" style="min-width: 200px; border-radius: 10px; overflow: hidden;">
                         <li><h6 class="dropdown-header text-muted small">Arizu Studio</h6></li>
                         <li>
-                            <button class="dropdown-item d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#aboutDevModal">
-                                <i class="bi bi-person-circle text-muted"></i> About Developer
-                            </button>
-                        </li>
-                        <li>
                             <button class="dropdown-item d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#editCredentialsModal" id="btnTriggerCredentialsModal">
                                 <i class="bi bi-key text-muted"></i> Edit Credentials
                             </button>
@@ -98,6 +93,11 @@ if (is_dir(__DIR__ . '/plugins')) {
                         <li>
                             <button class="dropdown-item d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#termsModal">
                                 <i class="bi bi-file-text text-muted"></i> Terms &amp; Conditions
+                            </button>
+                        </li>
+                        <li>
+                            <button class="dropdown-item d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#aboutDevModal">
+                                <i class="bi bi-person-circle text-muted"></i> About Developer
                             </button>
                         </li>
                         <li><hr class="dropdown-divider border-secondary my-1"></li>
@@ -986,14 +986,15 @@ if (is_dir(__DIR__ . '/plugins')) {
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body" style="padding: 28px; color: #a1a1aa; line-height: 1.7; font-size: 0.9rem;">
-                    <p class="text-muted small">Last updated: May 2025 &mdash; Arizu Studio</p>
+                    <p class="text-muted small">Last updated: May 2026 &mdash; Arizu Studio</p>
 
                     <h6 class="text-white fw-semibold mt-4 mb-2">1. Information We Collect</h6>
                     <p>This application (Fast Tunnel) operates entirely on your own server environment. We do not collect, store, or transmit any personal data, session credentials, or file/database contents to any external server or third party.</p>
-                    <p>All connection credentials entered in this application are stored locally on your server's session or storage mechanism and are never shared with Arizu Studio or any external party.</p>
+                    <p>All connection credentials entered in this application are stored locally in your server's database and are never shared with Arizu Studio or any external party.</p>
 
-                    <h6 class="text-white fw-semibold mt-4 mb-2">2. Data Storage</h6>
-                    <p>Session credentials (hostname, port, username, password) are stored locally on your server. You are solely responsible for the security of your server environment and the data stored within it.</p>
+                    <h6 class="text-white fw-semibold mt-4 mb-2">2. Zero-Trust Data Encryption</h6>
+                    <p>Session credentials (hostname, port, username, password, database name, and proxy details) are saved directly in your local MySQL database. To protect against credential leaks, all sensitive fields are secured using server-side AES-256-CBC encryption using a secret key kept strictly inside your server's <code>config.php</code> file. Credentials are only decrypted in-memory during active sessions.</p>
+                    <p>When you export sessions, they are encrypted client-side using a password you specify, ensuring your credentials cannot be read by unauthorized parties during transport.</p>
 
                     <h6 class="text-white fw-semibold mt-4 mb-2">3. Third-Party Services</h6>
                     <p>This application loads resources from the following CDNs for functionality: Bootstrap, jQuery, Monaco Editor, and Bootstrap Icons. These services may collect standard browser request data (e.g., IP address) according to their own privacy policies.</p>
@@ -1005,7 +1006,7 @@ if (is_dir(__DIR__ . '/plugins')) {
                     <p>For privacy-related inquiries, please contact us at <a href="mailto:ariefzufar@arizu.id" class="text-light">ariefzufar@arizu.id</a>.</p>
                 </div>
                 <div class="modal-footer border-secondary" style="background-color: #18181b; padding: 14px 28px;">
-                    <span class="text-muted small">&copy; 2025 Arizu Studio &mdash; arizu.id</span>
+                    <span class="text-muted small">&copy; 2026 Arizu Studio &mdash; arizu.id</span>
                     <button type="button" class="btn btn-sm ms-auto" style="background:#27272a; color:#d4d4d8; border:1px solid #3f3f46;" data-bs-dismiss="modal">Close</button>
                 </div>
             </div>
@@ -1023,7 +1024,7 @@ if (is_dir(__DIR__ . '/plugins')) {
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body" style="padding: 28px; color: #a1a1aa; line-height: 1.7; font-size: 0.9rem;">
-                    <p class="text-muted small">Last updated: May 2025 &mdash; Arizu Studio</p>
+                    <p class="text-muted small">Last updated: May 2026 &mdash; Arizu Studio</p>
 
                     <h6 class="text-white fw-semibold mt-4 mb-2">1. Acceptance of Terms</h6>
                     <p>By using Fast Tunnel (the "Application"), you agree to be bound by these Terms &amp; Conditions. If you do not agree, please discontinue use of the Application immediately.</p>
@@ -1033,7 +1034,7 @@ if (is_dir(__DIR__ . '/plugins')) {
 
                     <h6 class="text-white fw-semibold mt-4 mb-2">3. Responsibility &amp; Liability</h6>
                     <p>You are solely responsible for all files, data, and operations performed through this Application. Arizu Studio is not liable for any data loss, unauthorized access, or damage resulting from your use or misuse of the Application.</p>
-                    <p>You are responsible for securing your server environment, keeping your credentials confidential, and maintaining proper access controls.</p>
+                    <p>You are responsible for securing your server environment, maintaining the confidentiality of your database and encryption keys (including the <code>ENCRYPTION_KEY</code> inside <code>config.php</code>), and managing user access controls. Arizu Studio does not store or have access to any of your encryption keys or credentials.</p>
 
                     <h6 class="text-white fw-semibold mt-4 mb-2">4. No Warranty</h6>
                     <p>This Application is provided "as is" without warranty of any kind, express or implied. Arizu Studio does not guarantee uninterrupted, error-free operation of the Application.</p>
@@ -1045,7 +1046,7 @@ if (is_dir(__DIR__ . '/plugins')) {
                     <p>For questions about these Terms, contact us at <a href="mailto:ariefzufar@arizu.id" class="text-light">ariefzufar@arizu.id</a>.</p>
                 </div>
                 <div class="modal-footer border-secondary" style="background-color: #18181b; padding: 14px 28px;">
-                    <span class="text-muted small">&copy; 2025 Arizu Studio &mdash; arizu.id</span>
+                    <span class="text-muted small">&copy; 2026 Arizu Studio &mdash; arizu.id</span>
                     <button type="button" class="btn btn-sm ms-auto" style="background:#27272a; color:#d4d4d8; border:1px solid #3f3f46;" data-bs-dismiss="modal">Close</button>
                 </div>
             </div>
@@ -1181,7 +1182,26 @@ if (is_dir(__DIR__ . '/plugins')) {
     <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.min.js"></script>
-    <script type="module" src="assets/js/app.js"></script>
+    <script type="importmap">
+    {
+      "imports": {
+        "/assets/js/app.js": "/assets/js/app.js?v=<?php echo time(); ?>",
+        "/assets/js/modules/state.js": "/assets/js/modules/state.js?v=<?php echo time(); ?>",
+        "/assets/js/modules/helpers.js": "/assets/js/modules/helpers.js?v=<?php echo time(); ?>",
+        "/assets/js/modules/ui.js": "/assets/js/modules/ui.js?v=<?php echo time(); ?>",
+        "/assets/js/modules/sessions.js": "/assets/js/modules/sessions.js?v=<?php echo time(); ?>",
+        "/assets/js/modules/ftp.js": "/assets/js/modules/ftp.js?v=<?php echo time(); ?>",
+        "/assets/js/modules/editor.js": "/assets/js/modules/editor.js?v=<?php echo time(); ?>",
+        "/assets/js/modules/context-menu.js": "/assets/js/modules/context-menu.js?v=<?php echo time(); ?>",
+        "/assets/js/modules/loading-bar.js": "/assets/js/modules/loading-bar.js?v=<?php echo time(); ?>",
+        "/assets/js/modules/crypto.js": "/assets/js/modules/crypto.js?v=<?php echo time(); ?>",
+        "/assets/js/modules/db.js": "/assets/js/modules/db.js?v=<?php echo time(); ?>",
+        "/assets/js/modules/ssh.js": "/assets/js/modules/ssh.js?v=<?php echo time(); ?>",
+        "/assets/js/modules/db-helpers.js": "/assets/js/modules/db-helpers.js?v=<?php echo time(); ?>"
+      }
+    }
+    </script>
+    <script type="module" src="assets/js/app.js?v=<?php echo time(); ?>"></script>
     <?php
     foreach ($activePlugins as $plugin) {
         if (file_exists(__DIR__ . "/plugins/{$plugin}/plugin.js")) {
