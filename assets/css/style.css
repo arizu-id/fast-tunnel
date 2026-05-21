@@ -942,3 +942,99 @@ html, body {
     border: 2px dashed var(--accent);
 }
 
+/* ── Feature Tour ── */
+#tourBackdrop {
+    position: fixed;
+    inset: 0;
+    background: transparent; /* JS controls: transparent for spotlight, dark for centred steps */
+    z-index: 9990;
+}
+#tourHighlight {
+    position: fixed;
+    z-index: 9991;
+    border-radius: 8px;
+    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.62); /* this IS the overlay, no backdrop needed */
+    pointer-events: none;
+    transition: top .2s ease, left .2s ease, width .2s ease, height .2s ease;
+}
+#tourTooltip {
+    position: fixed;
+    z-index: 9992;
+    width: 290px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.55);
+    transition: top .2s ease, left .2s ease;
+}
+.tour-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+.tour-step-label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    color: var(--accent);
+}
+.tour-close {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-size: 1rem;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0 2px;
+    transition: color .15s;
+}
+.tour-close:hover { color: var(--text-base); }
+.tour-title {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: var(--text-base);
+    margin-bottom: 6px;
+}
+.tour-body {
+    font-size: 0.79rem;
+    color: var(--text-muted);
+    line-height: 1.55;
+    margin-bottom: 14px;
+}
+.tour-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.tour-dots { display: flex; gap: 4px; align-items: center; }
+.tour-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--surface-5);
+    transition: all .2s;
+}
+.tour-dot.active {
+    width: 18px;
+    border-radius: 3px;
+    background: var(--accent);
+}
+.tour-dot.done { background: var(--accent-dim, #10b981); opacity: .6; }
+.tour-actions { display: flex; gap: 6px; }
+.tour-btn {
+    padding: 6px 14px;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .15s;
+}
+.tour-btn-primary { background: var(--accent); color: #fff; }
+.tour-btn-primary:hover { filter: brightness(1.1); }
+.tour-btn-ghost { background: var(--surface-3); color: var(--text-muted); border: 1px solid var(--border); }
+.tour-btn-ghost:hover { background: var(--surface-4); color: var(--text-base); }
+

@@ -1,5 +1,7 @@
 <?php
 require_once __DIR__ . '/../vendor/autoload.php';
+require_once __DIR__ . '/../config.php';
+require_once __DIR__ . '/Auth.php';
 use phpseclib3\Net\SSH2;
 error_reporting(E_ALL & ~E_DEPRECATED & ~E_NOTICE & ~E_WARNING);
 if ($argc < 2 || !file_exists($argv[1])) {
@@ -20,7 +22,8 @@ ini_set('max_execution_time', 0);
 try {
     $ssh = new SSH2($session['host'], (int)$session['port']);
     $ssh->setTimeout(15);
-    if (!$ssh->login($session['user'], $session['password'])) {
+    $decryptedPassword = Auth::decrypt($session['password_enc']);
+    if (!$ssh->login($session['user'], $decryptedPassword)) {
         file_put_contents($outputFile, "\r\n\x1b[1;31mAuthentication failed.\x1b[0m\r\n", FILE_APPEND);
         exit(1);
     }
@@ -36,7 +39,9 @@ try {
     $inputPos = 0;
     $idleStart = time();
     $maxIdleSeconds = 3600;
+    $sleepTime = 10000;
     while (!file_exists($killFile)) {
+        $hasData = false;
         if ($resizeFile && file_exists($resizeFile)) {
             $rz = @file_get_contents($resizeFile);
             @unlink($resizeFile);
@@ -46,6 +51,7 @@ try {
                     $ssh->setWindowSize((int)$dims['cols'], (int)$dims['rows']);
                 }
             }
+            $hasData = true;
         }
         $output = $ssh->read('');
         if ($output === false) {
@@ -54,6 +60,7 @@ try {
         if (is_string($output) && $output !== '') {
             file_put_contents($outputFile, $output, FILE_APPEND);
             $idleStart = time();
+            $hasData = true;
         }
         clearstatcache(true, $inputFile);
         $fileSize = @filesize($inputFile);
@@ -67,6 +74,7 @@ try {
                 if ($data !== false && $data !== '') {
                     $ssh->write($data);
                     $idleStart = time();
+                    $hasData = true;
                 }
             }
         }
@@ -78,6 +86,12 @@ try {
             file_put_contents($outputFile, "\r\n\x1b[1;33mSession timed out after inactivity.\x1b[0m\r\n", FILE_APPEND);
             break;
         }
+        if ($hasData) {
+            $sleepTime = 10000;
+        } else {
+            $sleepTime = min(100000, $sleepTime + 10000);
+        }
+        usleep($sleepTime);
     }
 } catch (\Throwable $e) {
     file_put_contents($outputFile, "\r\n\x1b[1;31mSSH Error: " . $e->getMessage() . "\x1b[0m\r\n", FILE_APPEND);

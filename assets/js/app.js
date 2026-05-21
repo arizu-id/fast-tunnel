@@ -1,5 +1,6 @@
 import { state } from './modules/state.js';
 import { getParentPath } from './modules/helpers.js';
+import { startTour, resetTour } from './modules/tour.js';
 import { promptInput, showToast, showConfirmModal } from './modules/ui.js';
 import { loadSessions, saveSession, exportSessions, handleImportFile, doExportWithPassword, doImportWithPassword } from './modules/sessions.js';
 import { expandAndRefreshFolder, createNewFile, createNewFolder, uploadFiles } from './modules/ftp.js';
@@ -38,7 +39,13 @@ $(document).ready(function() {
         window.location.href = '/logout';
     });
 
+    $('#btnReplayTour').click(function() {
+        resetTour();
+        startTour(true);
+    });
+
     loadSessions();
+    setTimeout(() => startTour(), 600);
     initMonacoEditor();
     initContextMenu();
     $('.editor-tabs-container').addClass('d-none');

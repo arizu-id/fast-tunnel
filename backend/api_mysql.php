@@ -13,7 +13,7 @@ $_SESSION['mysql_auth']=[
 'host'=>$host,
 'port'=>$port,
 'user'=>$user,
-'password'=>$password,
+'password_enc'=>Auth::encrypt($password),
 'db_name'=>$db_name
 ];
 $tables=[];
@@ -79,22 +79,26 @@ if(!$table)throw new Exception("Table name is required");
 if(!$name)throw new Exception("Column name is required");
 if(!$type)throw new Exception("Column type is required");
 $mysql=getConnectedMysql($db_name);
-$colDef="`$name` $type";
+$safeTable=sanitizeIdentifier($table);
+$safeName=sanitizeIdentifier($name);
+$safeType=sanitizeColumnType($type);
+$colDef="$safeName $safeType";
+$len=sanitizeColumnLength($length);
 $typesWithLength=['VARCHAR','CHAR','INT','TINYINT','SMALLINT','BIGINT','DECIMAL','FLOAT','DOUBLE'];
-if($length!==''&&in_array(strtoupper($type),$typesWithLength)){$colDef.="($length)";}
+if($len!==''&&in_array($safeType,$typesWithLength)){$colDef.="($len)";}
 if(!$nullable){$colDef.=" NOT NULL";}else{$colDef.=" NULL";}
 if($defaultType==='NULL'){$colDef.=" DEFAULT NULL";}
 elseif($defaultType==='CURRENT_TIMESTAMP'){$colDef.=" DEFAULT CURRENT_TIMESTAMP";}
 elseif($defaultType==='USER_DEFINED'){$colDef.=" DEFAULT '".addslashes($defaultValue)."'";}
 if($ai){$colDef.=" AUTO_INCREMENT";}
-if($origName!==''){$sql="ALTER TABLE `$table` CHANGE COLUMN `$origName` $colDef";}
-else{$sql="ALTER TABLE `$table` ADD COLUMN $colDef";}
+if($origName!==''){$safeOrig=sanitizeIdentifier($origName);$sql="ALTER TABLE $safeTable CHANGE COLUMN $safeOrig $colDef";}
+else{$sql="ALTER TABLE $safeTable ADD COLUMN $colDef";}
 $mysql->executeQuery($sql);
 if($index!=='NONE'){
 try{
-if($index==='PRIMARY'){$mysql->executeQuery("ALTER TABLE `$table` ADD PRIMARY KEY (`$name`)");}
-elseif($index==='UNIQUE'){$mysql->executeQuery("ALTER TABLE `$table` ADD UNIQUE (`$name`)");}
-elseif($index==='INDEX'){$mysql->executeQuery("ALTER TABLE `$table` ADD INDEX (`$name`)");}
+if($index==='PRIMARY'){$mysql->executeQuery("ALTER TABLE $safeTable ADD PRIMARY KEY ($safeName)");}
+elseif($index==='UNIQUE'){$mysql->executeQuery("ALTER TABLE $safeTable ADD UNIQUE ($safeName)");}
+elseif($index==='INDEX'){$mysql->executeQuery("ALTER TABLE $safeTable ADD INDEX ($safeName)");}
 }catch(\Throwable$indexErr){}
 }
 echo json_encode(['success'=>true]);
@@ -106,9 +110,10 @@ $columns=$data['columns']??[];
 if(!$table)throw new Exception("Table name is required");
 if(empty($columns))throw new Exception("No columns specified for dropping");
 $mysql=getConnectedMysql($db_name);
+$safeTable=sanitizeIdentifier($table);
 $dropClauses=[];
-foreach($columns as$col){$dropClauses[]="DROP COLUMN `$col`";}
-$sql="ALTER TABLE `$table` ".implode(', ',$dropClauses);
+foreach($columns as$col){$dropClauses[]="DROP COLUMN ".sanitizeIdentifier($col);}
+$sql="ALTER TABLE $safeTable ".implode(', ',$dropClauses);
 $mysql->executeQuery($sql);
 echo json_encode(['success'=>true]);
 break;
@@ -117,7 +122,7 @@ $db_name=$data['db_name']??'';
 $table=$data['table']??'';
 if(!$table)throw new Exception("Table name is required");
 $mysql=getConnectedMysql($db_name);
-$mysql->executeQuery("TRUNCATE TABLE `$table`");
+$mysql->executeQuery("TRUNCATE TABLE ".sanitizeIdentifier($table));
 echo json_encode(['success'=>true]);
 break;
 case'mysql_drop_table':
@@ -125,7 +130,7 @@ $db_name=$data['db_name']??'';
 $table=$data['table']??'';
 if(!$table)throw new Exception("Table name is required");
 $mysql=getConnectedMysql($db_name);
-$mysql->executeQuery("DROP TABLE `$table`");
+$mysql->executeQuery("DROP TABLE ".sanitizeIdentifier($table));
 echo json_encode(['success'=>true]);
 break;
 case'mysql_update_row':
@@ -136,14 +141,16 @@ $pkValue=$data['pk_value']??null;
 $rowData=$data['row_data']??[];
 if(!$table||!$pkColumn||$pkValue===null||empty($rowData)){throw new Exception("table, pk_column, pk_value and row_data are required");}
 $mysql=getConnectedMysql($db_name);
+$safeTable=sanitizeIdentifier($table);
+$safePkColumn=sanitizeIdentifier($pkColumn);
 $setClauses=[];
 $params=[];
 foreach($rowData as$col=>$val){
-$setClauses[]="`".str_replace('`','',$col)."` = ?";
+$setClauses[]=sanitizeIdentifier($col)." = ?";
 $params[]=$val==='__NULL__'?null:$val;
 }
 $params[]=$pkValue;
-$sql="UPDATE `".str_replace('`','',$table)."` SET ".implode(', ',$setClauses)." WHERE `".str_replace('`','',$pkColumn)."` = ?";
+$sql="UPDATE $safeTable SET ".implode(', ',$setClauses)." WHERE $safePkColumn = ?";
 $affected=$mysql->executePrepare($sql,$params);
 echo json_encode(['success'=>true,'affected'=>$affected]);
 break;
@@ -154,8 +161,10 @@ $pkColumn=$data['pk_column']??'';
 $pkValues=$data['pk_values']??[];
 if(!$table||!$pkColumn||empty($pkValues)){throw new Exception("table, pk_column and pk_values are required");}
 $mysql=getConnectedMysql($db_name);
+$safeTable=sanitizeIdentifier($table);
+$safePkColumn=sanitizeIdentifier($pkColumn);
 $placeholders=implode(',',array_fill(0,count($pkValues),'?'));
-$sql="DELETE FROM `".str_replace('`','',$table)."` WHERE `".str_replace('`','',$pkColumn)."` IN ($placeholders)";
+$sql="DELETE FROM $safeTable WHERE $safePkColumn IN ($placeholders)";
 $affected=$mysql->executePrepare($sql,array_values($pkValues));
 echo json_encode(['success'=>true,'affected'=>$affected]);
 break;

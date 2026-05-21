@@ -69,13 +69,13 @@ function getConnectedFtp(): \App\FtpClient {
         $auth['host'],
         (int)$auth['port'],
         $auth['user'],
-        $auth['password'],
+        Auth::decrypt($auth['password_enc']),
         $use_proxy,
         $use_proxy ? ($auth['proxy_host'] ?? '') : '',
         $use_proxy ? (int)($auth['proxy_port'] ?? 0) : 0,
         $use_proxy ? ($auth['proxy_type'] ?? '') : '',
         $use_proxy ? ($auth['proxy_user'] ?? '') : '',
-        $use_proxy ? ($auth['proxy_password'] ?? '') : ''
+        $use_proxy ? Auth::decrypt($auth['proxy_password_enc'] ?? '') : ''
     );
     $ftp->connect();
     return $ftp;
@@ -90,7 +90,7 @@ function getConnectedMysql($dbName = ''): \App\MysqlClient {
         $auth['host'],
         $auth['port'],
         $auth['user'],
-        $auth['password'],
+        Auth::decrypt($auth['password_enc']),
         $db
     );
 }
@@ -100,7 +100,7 @@ function getConnectedSsh(): \App\SshClient {
     }
     $auth = $_SESSION['ssh_auth'];
     $ssh = new \App\SshClient($auth['host'], (int)$auth['port']);
-    $ssh->connect($auth['user'], $auth['password']);
+    $ssh->connect($auth['user'], Auth::decrypt($auth['password_enc']));
     return $ssh;
 }
 function rmdir_recursive(string $dir): void {
@@ -128,4 +128,29 @@ function copy_recursive(string $src, string $dst): void {
         }
     }
     closedir($dir);
+}
+function sanitizeIdentifier(string $name): string {
+    $clean = str_replace('`', '', $name);
+    if (!preg_match('/^[a-zA-Z0-9_]+$/', $clean)) {
+        throw new Exception("Invalid SQL identifier: " . htmlspecialchars($name));
+    }
+    return "`$clean`";
+}
+function sanitizeColumnType(string $type): string {
+    $allowedTypes = ['INT', 'VARCHAR', 'TEXT', 'DATE', 'DATETIME', 'TIMESTAMP', 'TINYINT', 'SMALLINT', 'BIGINT', 'DECIMAL', 'FLOAT', 'DOUBLE', 'CHAR', 'BLOB'];
+    $upper = strtoupper(trim($type));
+    if (!in_array($upper, $allowedTypes)) {
+        throw new Exception("Unauthorized column type: " . htmlspecialchars($type));
+    }
+    return $upper;
+}
+function sanitizeColumnLength(string $length): string {
+    $clean = trim($length);
+    if ($clean === '') {
+        return '';
+    }
+    if (!preg_match('/^[0-9]+(,[0-9]+)?$/', $clean)) {
+        throw new Exception("Invalid length value: " . htmlspecialchars($length));
+    }
+    return $clean;
 }

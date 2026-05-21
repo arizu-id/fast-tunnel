@@ -1,0 +1,2 @@
+# Prevent direct access to temporary session credentials
+Deny from all

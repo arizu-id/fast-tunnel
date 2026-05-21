@@ -31,7 +31,9 @@ exit;
 }
 $pos=0;
 $lastKeepalive=time();
+$sleepTime=10000;
 while(file_exists($pidFile)&&!file_exists($killFile??'')){
+$hasOutput=false;
 clearstatcache(true,$outputFile);
 $size=@filesize($outputFile);
 if($size&&$size>$pos){
@@ -44,6 +46,7 @@ $pos=$size;
 if($chunk!==false&&$chunk!==''){
 echo "data: ".json_encode(['output'=>$chunk])."\n\n";
 flush();
+$hasOutput=true;
 }
 }
 }
@@ -55,7 +58,8 @@ $lastKeepalive=time();
 if(connection_aborted()){
 break;
 }
-usleep(50000);
+if($hasOutput){$sleepTime=10000;}else{$sleepTime=min(100000,$sleepTime+10000);}
+usleep($sleepTime);
 }
 clearstatcache(true,$outputFile);
 $size=@filesize($outputFile);
@@ -107,6 +111,13 @@ $oldFiles=glob($tmpDir.'/*');
 if($oldFiles){
 foreach($oldFiles as$f){
 if(is_file($f)&&(time()-filemtime($f))>7200){
+if(strpos(basename($f),'_pid')!==false){
+$pid=(int)@file_get_contents($f);
+if($pid>0){
+if(PHP_OS_FAMILY==='Windows'){@exec("taskkill /F /PID $pid >NUL 2>&1");}
+else{@exec("kill -9 $pid >/dev/null 2>&1");}
+}
+}
 @unlink($f);
 }
 }
@@ -125,7 +136,7 @@ file_put_contents($sessionFile,json_encode([
 'host'=>$host,
 'port'=>$port,
 'user'=>$user,
-'password'=>$password,
+'password_enc'=>Auth::encrypt($password),
 'input_file'=>$inputFile,
 'output_file'=>$outputFile,
 'kill_file'=>$killFile,
@@ -147,7 +158,7 @@ exec("$phpBin '$streamScript' '$sessionFile' > /dev/null 2>&1 &");
 }
 $_SESSION['ssh_auth']=[
 'host'=>$host,'port'=>$port,
-'user'=>$user,'password'=>$password
+'user'=>$user,'password_enc'=>Auth::encrypt($password)
 ];
 $_SESSION['ssh_stream']=[
 'input_file'=>$inputFile,
@@ -201,7 +212,7 @@ case'ssh_get_server_info':
 $auth=$_SESSION['ssh_auth']??null;
 if(!$auth)throw new Exception('Not connected');
 $ssh=new \App\SshClient($auth['host'],$auth['port']);
-$ssh->connect($auth['user'],$auth['password']);
+$ssh->connect($auth['user'],Auth::decrypt($auth['password_enc']));
 $info=[];
 $cmds=[
 'os'=>"uname -s 2>/dev/null || echo Unknown",

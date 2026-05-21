@@ -57,7 +57,18 @@ $ftpConfig['proxy_user'],
 $ftpConfig['proxy_password']
 );
 $ftp->connect();
-$_SESSION['ftp_auth']=$ftpConfig;
+$_SESSION['ftp_auth']=[
+'host'=>$ftpConfig['host'],
+'port'=>$ftpConfig['port'],
+'user'=>$ftpConfig['user'],
+'password_enc'=>Auth::encrypt($ftpConfig['password']),
+'use_proxy'=>$ftpConfig['use_proxy'],
+'proxy_host'=>$ftpConfig['proxy_host'],
+'proxy_port'=>$ftpConfig['proxy_port'],
+'proxy_type'=>$ftpConfig['proxy_type'],
+'proxy_user'=>$ftpConfig['proxy_user'],
+'proxy_password_enc'=>Auth::encrypt($ftpConfig['proxy_password']??'')
+];
 $dir=$data['dir']??'.';
 $files=$ftp->listDirectory($dir);
 echo json_encode(['success'=>true,'files'=>$files,'pwd'=>$dir]);

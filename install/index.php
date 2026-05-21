@@ -211,31 +211,30 @@ let licenseData = {};
 
 // ── Step Navigation ──
 function showStep(n) {
+    currentStep = n;
     document.querySelectorAll('.step-panel').forEach(p => p.classList.remove('active'));
     document.getElementById('step' + n).classList.add('active');
     document.querySelectorAll('.step-dot').forEach((d, i) => {
         d.className = 'step-dot' + (i < n ? ' done' : i === n ? ' active' : '');
     });
-    // Button states
     document.getElementById('btnPrev').style.display = n > 0 && n < 4 ? '' : 'none';
+    const btn = document.getElementById('btnNext');
     if (n === 4) {
-        document.getElementById('btnNext').innerHTML = '<i class="bi bi-box-arrow-in-right"></i> Go to Fast Tunnel';
-        document.getElementById('btnNext').onclick = () => window.location.href = '/';
-    } else if (n === 0) {
-        document.getElementById('btnNext').disabled = !systemCheckPassed;
-        document.getElementById('btnNextText').textContent = systemCheckPassed ? 'Continue' : 'Checking...';
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-box-arrow-in-right"></i> Go to Fast Tunnel';
+        btn.onclick = () => window.location.href = '/';
     } else {
-        document.getElementById('btnNext').disabled = false;
-        document.getElementById('btnNextText').textContent = n === 3 ? 'Install' : 'Continue';
-        document.getElementById('btnNextIcon').className = 'bi bi-arrow-right';
+        const label = n === 3 ? 'Install' : (n === 0 && !systemCheckPassed) ? 'Checking...' : 'Continue';
+        btn.innerHTML = '<span id="btnNextText">' + label + '</span><i class="bi bi-arrow-right" id="btnNextIcon"></i>';
+        btn.disabled = (n === 0) && !systemCheckPassed;
+        btn.onclick = nextStep;
     }
-    currentStep = n;
 }
 
 function nextStep() {
     if (currentStep === 0 && systemCheckPassed) { showStep(1); }
     else if (currentStep === 1) { verifyLicense(); }
-    else if (currentStep === 2) { showStep(3); }
+    else if (currentStep === 2) { testDb(); }
     else if (currentStep === 3) { runSetup(); }
 }
 
@@ -313,6 +312,43 @@ async function verifyLicense() {
         }
     } catch (e) {
         errEl.textContent = 'Connection error. Please try again.';
+        errEl.style.display = 'block';
+    }
+
+    btn.disabled = false;
+    btn.innerHTML = '<span id="btnNextText">Continue</span><i class="bi bi-arrow-right" id="btnNextIcon"></i>';
+}
+
+// ── Step 2: Test DB Connection ──
+async function testDb() {
+    const errEl = document.getElementById('dbError');
+    errEl.style.display = 'none';
+
+    const btn = document.getElementById('btnNext');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Testing...';
+
+    try {
+        const resp = await fetch('/install/db_test.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                db_host: document.getElementById('dbHost').value,
+                db_port: document.getElementById('dbPort').value,
+                db_user: document.getElementById('dbUser').value,
+                db_pass: document.getElementById('dbPass').value,
+                db_name: document.getElementById('dbName').value,
+            }),
+        });
+        const data = await resp.json();
+        if (data.success) {
+            showStep(3);
+        } else {
+            errEl.textContent = data.message || 'Database connection failed.';
+            errEl.style.display = 'block';
+        }
+    } catch (e) {
+        errEl.textContent = 'Could not reach the test endpoint. Please try again.';
         errEl.style.display = 'block';
     }
 

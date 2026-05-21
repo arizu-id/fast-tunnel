@@ -3,8 +3,6 @@ import { showToast } from './ui.js';
 let term = null;
 let fitAddon = null;
 let sseSource = null;
-let commandHistory = [];
-let historyIndex = -1;
 export function connectSsh(sessionId, session) {
     if (state.isConnecting) {
         showToast('Connection in progress, please wait...', 'warning');
@@ -244,41 +242,6 @@ function initTerminal(session) {
             }).catch(() => {});
         }
     });
-    const $input = $('#sshConsoleInput');
-    const $btn = $('#btnSshSendCmd');
-    $input.off('keydown').on('keydown', function(e) {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            runConsoleCmd();
-        } else if (e.key === 'ArrowUp') {
-            e.preventDefault();
-            if (commandHistory.length > 0 && historyIndex < commandHistory.length - 1) {
-                historyIndex++;
-                $input.val(commandHistory[commandHistory.length - 1 - historyIndex]);
-            }
-        } else if (e.key === 'ArrowDown') {
-            e.preventDefault();
-            if (historyIndex > 0) {
-                historyIndex--;
-                $input.val(commandHistory[commandHistory.length - 1 - historyIndex]);
-            } else {
-                historyIndex = -1;
-                $input.val('');
-            }
-        }
-    });
-    $btn.off('click').on('click', () => runConsoleCmd());
-    function runConsoleCmd() {
-        const cmd = $input.val();
-        if (cmd.length === 0) return;
-        sendInput(cmd + '\n');
-        if (commandHistory.length === 0 || commandHistory[commandHistory.length - 1] !== cmd) {
-            commandHistory.push(cmd);
-            if (commandHistory.length > 50) commandHistory.shift();
-        }
-        historyIndex = -1;
-        $input.val('').focus();
-    }
     container.addEventListener('click', () => { term.focus(); });
 }
 function connectSSE() {

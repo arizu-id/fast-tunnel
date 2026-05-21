@@ -1,0 +1,7 @@
+tempcodecanyon/
+.git/
+.claude/
+documentation/
+temp_ssh/ssh_*
+config.php
+installed.lock
