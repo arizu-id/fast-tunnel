@@ -6,10 +6,16 @@ let currentTable = '';
 let currentPage = 1;
 const limit = 50;
 export function connectMysql(sessionId, session) {
+    if (state.isConnecting) {
+        showToast('Connection in progress, please wait...', 'warning');
+        return;
+    }
+    state.isConnecting = true;
     state.currentSessionId = sessionId;
     state.currentProtocol = 'mysql';
     const password = session.password ? atob(session.password) : '';
     showToast('Connecting to MySQL...', 'info');
+    $('.session-item').addClass('pe-none opacity-50');
     fetch('api.php?action=mysql_connect', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -46,11 +52,15 @@ export function connectMysql(sessionId, session) {
             $('#dbTableList').empty();
         }
         setupDbWorkspace();
+        state.isConnecting = false;
+        $('.session-item').removeClass('pe-none opacity-50');
     })
     .catch(err => {
         showToast(err.message || 'Connection failed', 'danger');
         $('#connectionStatus').html(`<span class="text-danger"><i class="bi bi-x-circle me-2"></i>${err.message}</span>`);
         state.currentProtocol = null;
+        state.isConnecting = false;
+        $('.session-item').removeClass('pe-none opacity-50');
     });
 }
 function setupDbSidebar(databases, selectedDb) {

@@ -16,7 +16,9 @@ $data=[];
 if($method==='POST'){
 $data=json_decode(file_get_contents('php://input'),true)??[];
 }
+if($action!=='ssh_stream_output'){
 header('Content-Type: application/json');
+}
 try{
 if(strpos($action,'mysql_')===0){
 require_once __DIR__.'/backend/api_mysql.php';

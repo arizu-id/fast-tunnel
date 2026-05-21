@@ -6,11 +6,16 @@ let sseSource = null;
 let commandHistory = [];
 let historyIndex = -1;
 export function connectSsh(sessionId, session) {
+    if (state.isConnecting) {
+        showToast('Connection in progress, please wait...', 'warning');
+        return;
+    }
     state.isConnecting = true;
     state.currentSessionId = sessionId;
     state.currentProtocol = 'ssh';
     const password = session.password ? atob(session.password) : '';
     showToast('Connecting to SSH...', 'info');
+    $('.session-item').addClass('pe-none opacity-50');
     $('#connectionStatus').html(`<span class="text-info"><i class="bi bi-arrow-repeat spin me-2 d-inline-block"></i>Connecting to ${session.name}...</span>`);
     fetch('api.php?action=ssh_connect', {
         method: 'POST',
@@ -50,11 +55,14 @@ export function connectSsh(sessionId, session) {
         $('#db-container').addClass('d-none');
         initTerminal(session);
         loadServerInfo();
+        state.isConnecting = false;
+        $('.session-item').removeClass('pe-none opacity-50');
     })
     .catch(err => {
         showToast(err.message || 'SSH connection failed', 'danger');
         $('#connectionStatus').html(`<span class="text-danger"><i class="bi bi-x-circle me-2"></i>${err.message || 'Connection failed'}</span>`);
         state.isConnecting = false;
+        $('.session-item').removeClass('pe-none opacity-50');
     });
 }
 function buildSshSidebar(session) {

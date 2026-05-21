@@ -1,12 +1,11 @@
 let inputCallback = null;
 let confirmCallback = null;
 export function showToast(message, type = 'success') {
-    const typeClass = type === 'success' ? 'toast-success' : 'toast-danger';
-    const iconClass = type === 'success' ? 'bi-check-circle-fill' : 'bi-exclamation-triangle-fill';
+    const icons = { success: 'bi-check-circle-fill', danger: 'bi-exclamation-triangle-fill', info: 'bi-info-circle-fill', warning: 'bi-exclamation-triangle-fill' };
     const toastHtml = `
-        <div class="custom-toast ${typeClass}">
+        <div class="custom-toast toast-${type}">
             <div class="toast-content">
-                <i class="bi ${iconClass} toast-icon"></i>
+                <i class="bi ${icons[type] || icons.success} toast-icon"></i>
                 <span class="toast-msg fw-medium">${message}</span>
             </div>
             <div class="toast-progress-bar"></div>

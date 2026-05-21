@@ -5,10 +5,12 @@ import { loadSessions, saveSession, exportSessions, handleImportFile, doExportWi
 import { expandAndRefreshFolder, createNewFile, createNewFolder } from './modules/ftp.js';
 import { initMonacoEditor, saveCurrentFile, closeTab } from './modules/editor.js';
 import { initContextMenu } from './modules/context-menu.js';
+import './modules/loading-bar.js';
 $(document).ready(function() {
     loadSessions();
     initMonacoEditor();
     initContextMenu();
+    $('.editor-tabs-container').addClass('d-none');
     $('#btnSaveSession').click(saveSession);
     $('#btnExportSessions').click(exportSessions);
     $('#btnImportSessions').click(() => $('#importFileInput').trigger('click'));

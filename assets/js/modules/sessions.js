@@ -188,21 +188,34 @@ export function editSession(id) {
     const sessions = getSavedSessions();
     const session = sessions.find(s => s.id === id);
     if (!session) return;
+    const proto = session.protocol || 'ftp';
     $('#editSessionId').val(id);
-    $('#editSessionHost').val(session.host || '');
+    $('#editSessionProtocol').val(proto);
     $('#editSessionName').val(session.name || '');
-    $('#editSessionPort').val(session.port || '');
-    $('#editSessionUser').val(session.user || '');
-    $('#editSessionPassword').val('');
-    if ((session.protocol || 'ftp') === 'mysql') {
-        $('#editSessionDbNameGroup').show();
-        $('#editSessionDbName').val(session.db_name || '');
-    } else {
-        $('#editSessionDbNameGroup').hide();
-        $('#editSessionDbName').val('');
+    $('.edit-protocol-group').addClass('d-none');
+    if (proto === 'ftp') {
+        $('#editFtpFields').removeClass('d-none');
+        $('#editFtpHost').val(session.host || '');
+        $('#editFtpPort').val(session.port || 21);
+        $('#editFtpUser').val(session.user || '');
+        $('#editFtpPassword').val('');
+    } else if (proto === 'mysql') {
+        $('#editMysqlFields').removeClass('d-none');
+        $('#editMysqlHost').val(session.host || '');
+        $('#editMysqlPort').val(session.port || 3306);
+        $('#editMysqlUser').val(session.user || '');
+        $('#editMysqlPassword').val('');
+        $('#editMysqlDb').val(session.db_name || '');
+    } else if (proto === 'ssh') {
+        $('#editSshFields').removeClass('d-none');
+        $('#editSshHost').val(session.host || '');
+        $('#editSshPort').val(session.port || 22);
+        $('#editSshUser').val(session.user || '');
+        $('#editSshPassword').val('');
     }
-    $('#btnToggleEditPassword').off('click').on('click', function() {
-        const inp = $('#editSessionPassword');
+    $('.edit-pw-toggle').off('click').on('click', function() {
+        const target = $(this).data('target');
+        const inp = $('#' + target);
         const isPass = inp.attr('type') === 'password';
         inp.attr('type', isPass ? 'text' : 'password');
         $(this).find('i').toggleClass('bi-eye bi-eye-slash');
@@ -218,24 +231,38 @@ function saveEditSession() {
     let sessions = getSavedSessions();
     const idx = sessions.findIndex(s => s.id === id);
     if (idx === -1) return;
-    const host = $('#editSessionHost').val().trim();
+    const proto = sessions[idx].protocol || 'ftp';
     const name = $('#editSessionName').val().trim();
-    const port = parseInt($('#editSessionPort').val()) || sessions[idx].port;
-    const user = $('#editSessionUser').val().trim();
-    const password = $('#editSessionPassword').val();
-    const dbName = $('#editSessionDbName').val().trim();
+    let host, port, user, password, dbName;
+    if (proto === 'ftp') {
+        host = $('#editFtpHost').val().trim();
+        port = parseInt($('#editFtpPort').val()) || 21;
+        user = $('#editFtpUser').val().trim();
+        password = $('#editFtpPassword').val();
+    } else if (proto === 'mysql') {
+        host = $('#editMysqlHost').val().trim();
+        port = parseInt($('#editMysqlPort').val()) || 3306;
+        user = $('#editMysqlUser').val().trim();
+        password = $('#editMysqlPassword').val();
+        dbName = $('#editMysqlDb').val().trim();
+    } else if (proto === 'ssh') {
+        host = $('#editSshHost').val().trim();
+        port = parseInt($('#editSshPort').val()) || 22;
+        user = $('#editSshUser').val().trim();
+        password = $('#editSshPassword').val();
+    }
     if (!host || !user) {
         showToast('Host and Username are required', 'danger');
         return;
     }
-    sessions[idx].name = name || `${user}@${host} (${(sessions[idx].protocol || 'ftp').toUpperCase()})`;
+    sessions[idx].name = name || `${user}@${host} (${proto.toUpperCase()})`;
     sessions[idx].host = host;
     sessions[idx].port = port;
     sessions[idx].user = user;
     if (password) {
         sessions[idx].password = btoa(password);
     }
-    if ((sessions[idx].protocol || 'ftp') === 'mysql') {
+    if (proto === 'mysql' && dbName !== undefined) {
         sessions[idx].db_name = dbName;
     }
     setSavedSessions(sessions);

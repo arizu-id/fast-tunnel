@@ -148,63 +148,41 @@ html, body {
     letter-spacing: 0.05em;
 }
 
-.session-item, .file-item {
+.session-item {
     cursor: pointer;
     padding: 8px 16px;
     user-select: none;
     border-radius: 6px;
     margin: 2px 8px;
-    transition: background-color 0.15s;
+    transition: background-color 0.15s, opacity 0.3s;
     color: var(--text-base);
 }
-
-.session-item:hover, .file-item:hover {
+.session-item:hover {
     background-color: rgba(255,255,255,0.05);
 }
-
-.session-item.active, .file-item.active {
+.session-item.active {
     background-color: var(--surface-5);
     color: #ffffff;
 }
-
 .session-item .btn-renew-session {
     color: var(--text-faint);
     opacity: 0;
     transition: color 0.15s, opacity 0.15s;
 }
-
 .session-item:hover .btn-renew-session,
 .session-item.active .btn-renew-session {
     opacity: 1;
 }
-
 .session-item .btn-renew-session:hover {
     color: var(--accent) !important;
 }
-
 .session-item .btn-delete-session {
     opacity: 0;
     transition: opacity 0.15s;
 }
-
 .session-item:hover .btn-delete-session,
 .session-item.active .btn-delete-session {
     opacity: 1;
-}
-
-.file-item i {
-    width: 20px;
-    text-align: center;
-    margin-right: 12px;
-    font-size: 1.1em;
-}
-
-.file-item.directory i {
-    color: var(--accent-amber);
-}
-
-.file-item.file i {
-    color: var(--text-muted);
 }
 
 .form-control {
@@ -669,52 +647,78 @@ html, body {
     font-size: 0.88rem;
     color: var(--text-base);
     transition: background-color 0.15s, color 0.15s;
-    height: 30px;
     border-radius: 4px;
     margin: 1px 4px;
 }
-
-.tree-item:hover {
+.tree-item.folder-item {
+    height: auto;
+}
+.tree-item.file-item {
+    height: 30px;
+}
+.tree-row {
+    display: flex;
+    align-items: center;
+    height: 30px;
+    padding: 0 8px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background-color 0.15s;
+    user-select: none;
+}
+.tree-row:hover {
     background-color: var(--surface-4);
     color: #ffffff;
 }
-
-.tree-item.selected {
+.tree-item.selected > .tree-row {
     background-color: var(--surface-5) !important;
     color: #ffffff !important;
 }
-
 .tree-item .chevron-icon {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     width: 16px;
     height: 100%;
+    flex-shrink: 0;
 }
-
 .tree-item .chevron-icon i {
     transition: transform 0.15s ease;
+    font-size: 0.7rem;
 }
-
+.tree-item .item-name {
+    flex: 1;
+    min-width: 0;
+}
+.tree-children {
+    transition: all 0.2s ease-in-out;
+}
+.tree-empty {
+    padding: 4px 12px;
+    font-size: 0.82rem;
+}
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+.spin {
+    animation: spin 1s linear infinite;
+}
 .text-warning-custom {
     color: var(--accent-amber) !important;
 }
-
-/* File type icon colors — intentionally distinct per language */
-.text-php   { color: #a855f7 !important; }  /* purple */
-.text-js    { color: var(--accent-amber) !important; }  /* amber */
-.text-json  { color: #06b6d4 !important; }  /* cyan */
-.text-css   { color: var(--accent-blue) !important; }   /* blue */
-.text-html  { color: #f97316 !important; }  /* orange */
-.text-scss  { color: #ec4899 !important; }  /* pink */
-.text-ts    { color: var(--accent-blue) !important; }   /* blue */
-.text-py    { color: var(--accent) !important; }        /* emerald */
+.text-php   { color: #a855f7 !important; }
+.text-js    { color: var(--accent-amber) !important; }
+.text-json  { color: #06b6d4 !important; }
+.text-css   { color: var(--accent-blue) !important; }
+.text-html  { color: #f97316 !important; }
+.text-scss  { color: #ec4899 !important; }
+.text-ts    { color: var(--accent-blue) !important; }
+.text-py    { color: var(--accent) !important; }
 .text-light-gray { color: var(--text-muted); }
-
 .folder-children {
     transition: all 0.2s ease-in-out;
 }
-
 .tree-loading {
     font-size: 0.82rem;
     color: var(--text-dim);

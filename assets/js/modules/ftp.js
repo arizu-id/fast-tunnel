@@ -3,8 +3,14 @@ import { selectItem, getParentPath } from './helpers.js';
 import { showToast, showConfirmModal, promptInput } from './ui.js';
 import { openFile, closeTab, getFileIconClass, renderTabs, switchTab } from './editor.js';
 export function connectSession(id, sessionData) {
+    if (state.isConnecting) {
+        showToast('Connection in progress, please wait...', 'warning');
+        return;
+    }
+    state.isConnecting = true;
     state.currentProtocol = 'ftp';
     $('#connectionStatus').html(`<span class="text-info"><i class="bi bi-arrow-repeat spin me-2 d-inline-block"></i>Connecting to ${sessionData.name}...</span>`);
+    $('.session-item').addClass('pe-none opacity-50');
     $.ajax({
         url: 'api.php?action=connect',
         type: 'POST',
@@ -53,6 +59,10 @@ export function connectSession(id, sessionData) {
             try { msg = JSON.parse(xhr.responseText).error || msg; } catch(e) {}
             showToast(msg, 'danger');
             $('#connectionStatus').html(`<span class="text-danger"><i class="bi bi-x-circle me-2"></i>${msg}</span>`);
+        },
+        complete: function() {
+            state.isConnecting = false;
+            $('.session-item').removeClass('pe-none opacity-50');
         }
     });
 }
@@ -87,7 +97,7 @@ function renderTreeItems(files, $container, parentPath) {
                         <i class="bi bi-folder2 me-2 text-warning"></i>
                         <span class="item-name text-truncate">${item.name}</span>
                     </div>
-                    <div class="tree-children d-none ps-3"></div>
+                    <div class="tree-children ps-3" style="display:none;"></div>
                 </div>
             `);
             const $row = $item.find('.tree-row');
@@ -123,11 +133,11 @@ export function toggleFolder(path, $item, $children) {
     if (isExpanded) {
         $item.attr('data-expanded', 'false');
         $chevron.removeClass('bi-chevron-down').addClass('bi-chevron-right');
-        $children.slideUp(150);
+        $children.stop(true).slideUp(150);
     } else {
         $item.attr('data-expanded', 'true');
         $chevron.removeClass('bi-chevron-right').addClass('bi-chevron-down');
-        $children.slideDown(150);
+        $children.stop(true).slideDown(150);
         if ($children.children().length === 0) {
             $children.html('<div class="text-muted small ps-2 py-1 opacity-50"><i class="bi bi-arrow-repeat spin me-1"></i>Loading...</div>');
             $.ajax({

@@ -6,7 +6,8 @@ export const state = {
     currentOpenedFile: null,
     openTabs: [],
     selectedPath: '/',
-    selectedIsDir: true
+    selectedIsDir: true,
+    isConnecting: false
 };
 export const SESSIONS_KEY = 'fast_tunnel_sessions';
 export const SESSION_EXPIRY_DAYS = 30;
