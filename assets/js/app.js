@@ -149,4 +149,75 @@ $(document).ready(function() {
             }
         }
     });
+
+    // Credentials Modal logic
+    $('#editCredentialsModal').on('show.bs.modal', function() {
+        $('#editCredentialsError').addClass('d-none').text('');
+        $('#editCredUsername').val('');
+        $('#editCredPassword').val('');
+        $('#editCredConfirmPassword').val('');
+        
+        fetch('/api/auth_profile')
+            .then(r => r.json())
+            .then(res => {
+                if (res.success) {
+                    $('#editCredUsername').val(res.username);
+                }
+            })
+            .catch(() => {
+                showToast('Failed to fetch profile username', 'danger');
+            });
+    });
+
+    $('#btnSaveCredentials').click(function() {
+        const username = $('#editCredUsername').val().trim();
+        const password = $('#editCredPassword').val();
+        const confirmPassword = $('#editCredConfirmPassword').val();
+        const $err = $('#editCredentialsError');
+        
+        $err.addClass('d-none').text('');
+        
+        if (!username) {
+            $err.text('Username is required').removeClass('d-none');
+            return;
+        }
+        
+        if (password || confirmPassword) {
+            if (password !== confirmPassword) {
+                $err.text('Passwords do not match').removeClass('d-none');
+                return;
+            }
+            if (password.length < 5) {
+                $err.text('Password must be at least 5 characters long').removeClass('d-none');
+                return;
+            }
+        }
+        
+        const btn = $(this);
+        btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-2"></span>Saving...');
+        
+        fetch('/api/auth_update_credentials', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                username: username,
+                password: password
+            })
+        })
+        .then(r => r.json())
+        .then(res => {
+            if (res.success) {
+                showToast('Credentials updated successfully', 'success');
+                bootstrap.Modal.getInstance(document.getElementById('editCredentialsModal')).hide();
+            } else {
+                $err.text(res.error || 'Failed to update credentials').removeClass('d-none');
+            }
+        })
+        .catch(() => {
+            $err.text('Connection error').removeClass('d-none');
+        })
+        .finally(() => {
+            btn.prop('disabled', false).html('<i class="bi bi-check-lg me-1"></i>Save Changes');
+        });
+    });
 });
