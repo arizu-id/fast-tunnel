@@ -23,6 +23,7 @@ if (is_dir(__DIR__ . '/plugins')) {
     <title>Fast Tunnel</title>
     <script>
         window.FAST_TUNNEL_PLUGINS = <?php echo json_encode($activePlugins); ?>;
+        window.__ft_translate = window.__ft_translate || function(key, fallback) { return fallback || key; };
     </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -44,15 +45,15 @@ if (is_dir(__DIR__ . '/plugins')) {
     <div class="d-flex h-100 w-100 overflow-hidden main-container">
         <div class="panel-left d-flex flex-column border-end border-secondary">
             <div class="p-3 border-bottom border-secondary d-flex justify-content-between align-items-center bg-darker panel-header">
-                <h6 class="mb-0 fw-semibold tracking-wide text-uppercase text-muted" style="font-size: 0.75rem;"><i class="bi bi-hdd-network me-2"></i>Fast Tunnel</h6>
+                <h6 class="mb-0 fw-semibold tracking-wide text-uppercase text-muted" style="font-size: 0.75rem;" data-i18n="fast_tunnel">Fast Tunnel</h6>
                 <div class="d-flex align-items-center gap-1">
-                    <button class="btn btn-sm btn-icon" id="btnImportSessions" title="Import Sessions">
+                    <button class="btn btn-sm btn-icon" id="btnImportSessions" title="Import Sessions" data-i18n-title="import_sessions">
                         <i class="bi bi-box-arrow-in-down"></i>
                     </button>
-                    <button class="btn btn-sm btn-icon" id="btnExportSessions" title="Export Sessions">
+                    <button class="btn btn-sm btn-icon" id="btnExportSessions" title="Export Sessions" data-i18n-title="export_sessions">
                         <i class="bi bi-box-arrow-up"></i>
                     </button>
-                    <button class="btn btn-sm btn-icon" data-bs-toggle="modal" data-bs-target="#addSessionModal" title="New Session">
+                    <button class="btn btn-sm btn-icon" data-bs-toggle="modal" data-bs-target="#addSessionModal" title="New Session" data-i18n-title="new_session">
                         <i class="bi bi-plus-lg"></i>
                     </button>
                 </div>
@@ -67,10 +68,10 @@ if (is_dir(__DIR__ . '/plugins')) {
                 <div class="d-flex align-items-center">
                     <button class="btn btn-sm btn-icon d-md-none me-2" id="btnToggleSessions" title="Toggle Sessions"><i class="bi bi-list fs-5"></i></button>
                     <button class="btn btn-sm btn-icon d-md-none me-2 d-none" id="btnToggleExplorer" title="Toggle File Explorer"><i class="bi bi-folder2 fs-5"></i></button>
-                    <span class="text-muted" id="connectionStatus"><i class="bi bi-info-circle me-2"></i>Not connected</span>
+                    <span class="text-muted" id="connectionStatus"><i class="bi bi-info-circle me-2"></i><span data-i18n="not_connected">Not connected</span></span>
                 </div>
                 <div class="d-flex align-items-center gap-1">
-                    <button class="btn btn-sm btn-icon" id="btnPluginsManager" title="Plugins Manager" data-bs-toggle="modal" data-bs-target="#pluginsModal">
+                    <button class="btn btn-sm btn-icon" id="btnPluginsManager" title="Plugins Manager" data-i18n-title="plugins_manager" data-bs-toggle="modal" data-bs-target="#pluginsModal">
                         <i class="bi bi-puzzle"></i>
                     </button>
                     <div class="dropdown">
@@ -81,29 +82,29 @@ if (is_dir(__DIR__ . '/plugins')) {
                         <li><h6 class="dropdown-header text-muted small">Arizu Studio</h6></li>
                         <li>
                             <button class="dropdown-item d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#editCredentialsModal" id="btnTriggerCredentialsModal">
-                                <i class="bi bi-key text-muted"></i> Edit Credentials
+                                <i class="bi bi-key text-muted"></i> <span data-i18n="edit_credentials">Edit Credentials</span>
                             </button>
                         </li>
                         <li><hr class="dropdown-divider border-secondary my-1"></li>
                         <li>
                             <button class="dropdown-item d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#privacyPolicyModal">
-                                <i class="bi bi-shield-check text-muted"></i> Privacy Policy
+                                <i class="bi bi-shield-check text-muted"></i> <span data-i18n="privacy_policy">Privacy Policy</span>
                             </button>
                         </li>
                         <li>
                             <button class="dropdown-item d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#termsModal">
-                                <i class="bi bi-file-text text-muted"></i> Terms &amp; Conditions
+                                <i class="bi bi-file-text text-muted"></i> <span data-i18n="terms_conditions">Terms &amp; Conditions</span>
                             </button>
                         </li>
                         <li>
                             <button class="dropdown-item d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#aboutDevModal">
-                                <i class="bi bi-person-circle text-muted"></i> About Developer
+                                <i class="bi bi-person-circle text-muted"></i> <span data-i18n="about_developer">About Developer</span>
                             </button>
                         </li>
                         <li><hr class="dropdown-divider border-secondary my-1"></li>
                         <li>
                             <button class="dropdown-item d-flex align-items-center gap-2 text-danger" id="btnLogout">
-                                <i class="bi bi-box-arrow-right"></i> Logout
+                                <i class="bi bi-box-arrow-right"></i> <span data-i18n="logout">Logout</span>
                             </button>
                         </li>
                     </ul>
@@ -134,11 +135,11 @@ if (is_dir(__DIR__ . '/plugins')) {
             <div class="d-flex flex-grow-1 overflow-hidden d-none" id="workspaceArea">
                 <div class="file-explorer border-end border-secondary d-flex flex-column" id="ftpSidebar" style="width: 260px;">
                     <div class="p-2 border-bottom border-secondary d-flex justify-content-between align-items-center bg-dark panel-header">
-                        <span class="small text-muted text-uppercase fw-semibold ms-2" style="letter-spacing: 0.5px;">Workspace</span>
+                        <span class="small text-muted text-uppercase fw-semibold ms-2" style="letter-spacing: 0.5px;" data-i18n="workspace">Workspace</span>
                         <div class="btn-group gap-1">
-                            <button class="btn btn-sm btn-icon" id="btnAddFile" title="New File"><i class="bi bi-file-earmark-plus"></i></button>
-                            <button class="btn btn-sm btn-icon" id="btnAddFolder" title="New Folder"><i class="bi bi-folder-plus"></i></button>
-                            <button class="btn btn-sm btn-icon" id="btnRefresh" title="Refresh"><i class="bi bi-arrow-clockwise"></i></button>
+                            <button class="btn btn-sm btn-icon" id="btnAddFile" title="New File" data-i18n-title="new_file"><i class="bi bi-file-earmark-plus"></i></button>
+                            <button class="btn btn-sm btn-icon" id="btnAddFolder" title="New Folder" data-i18n-title="new_folder"><i class="bi bi-folder-plus"></i></button>
+                            <button class="btn btn-sm btn-icon" id="btnRefresh" title="Refresh" data-i18n-title="refresh"><i class="bi bi-arrow-clockwise"></i></button>
                         </div>
                     </div>
                     <div class="p-1 px-3 small text-truncate text-muted border-bottom border-secondary bg-dark font-monospace" id="currentPath" title="/">/</div>
@@ -148,8 +149,8 @@ if (is_dir(__DIR__ . '/plugins')) {
 
                 <div class="db-sidebar border-end border-secondary d-none flex-column" id="dbSidebar" style="width: 260px; background-color: #18181b;">
                     <div class="p-2 border-bottom border-secondary d-flex justify-content-between align-items-center bg-dark panel-header">
-                        <span class="small text-muted text-uppercase fw-semibold ms-2" style="letter-spacing: 0.5px;">Database Explorer</span>
-                        <button class="btn btn-sm btn-icon text-danger btn-db-disconnect" style="padding: 2px 6px;" title="Disconnect"><i class="bi bi-power"></i></button>
+                        <span class="small text-muted text-uppercase fw-semibold ms-2" style="letter-spacing: 0.5px;" data-i18n="database_explorer">Database Explorer</span>
+                        <button class="btn btn-sm btn-icon text-danger btn-db-disconnect" style="padding: 2px 6px;" title="Disconnect" data-i18n-title="disconnect"><i class="bi bi-power"></i></button>
                     </div>
                     <div class="flex-grow-1 overflow-auto py-2" id="dbTreeContainer">
                     </div>
@@ -171,11 +172,11 @@ if (is_dir(__DIR__ . '/plugins')) {
                     <div id="floatingActionPanel" class="bg-dark border-top border-secondary px-3 py-2 align-items-center justify-content-end gap-2 d-none" style="z-index: 10; flex-shrink:0;">
                         <button id="btnSaveFile" class="btn-editor-action btn-editor-save d-flex align-items-center gap-2" title="Save (Ctrl+S)">
                             <i class="bi bi-floppy"></i>
-                            <span>Save</span>
+                            <span data-i18n="save">Save</span>
                         </button>
                         <button id="btnSaveCloseFile" class="btn-editor-action btn-editor-close d-flex align-items-center gap-2" title="Save and Close">
                             <i class="bi bi-x-lg"></i>
-                            <span>Save &amp; Close</span>
+                            <span data-i18n="save_close">Save &amp; Close</span>
                         </button>
                     </div>
 
@@ -183,16 +184,16 @@ if (is_dir(__DIR__ . '/plugins')) {
                          <!-- DB Tabs Nav -->
                          <div class="db-tabs-nav d-flex align-items-center gap-1 px-3 pt-2 border-bottom border-secondary" id="dbTabsNav" style="background: #1a1a1e; flex-shrink:0;">
                              <button class="db-tab-btn active" id="dbTabStructure" data-tab="structure">
-                                 <i class="bi bi-folder2-open me-1"></i>Structure
+                                 <i class="bi bi-folder2-open me-1"></i><span data-i18n="structure">Structure</span>
                              </button>
                              <button class="db-tab-btn" id="dbTabSql" data-tab="sql">
-                                 <i class="bi bi-code-slash me-1"></i>SQL
+                                 <i class="bi bi-code-slash me-1"></i><span data-i18n="sql">SQL</span>
                              </button>
                              <button class="db-tab-btn" id="dbTabBrowse" data-tab="browse">
-                                 <i class="bi bi-table me-1"></i>Browse
+                                 <i class="bi bi-table me-1"></i><span data-i18n="browse">Browse</span>
                              </button>
                              <button class="db-tab-btn" id="dbTabColumns" data-tab="columns">
-                                 <i class="bi bi-list-columns-reverse me-1"></i>Table Columns
+                                 <i class="bi bi-list-columns-reverse me-1"></i><span data-i18n="table_columns">Table Columns</span>
                              </button>
                              <div class="ms-auto d-flex align-items-center gap-2 pb-1">
                                  <span class="text-muted small" id="dbActiveTableBadge" style="display:none;">
@@ -206,7 +207,7 @@ if (is_dir(__DIR__ . '/plugins')) {
                          <div class="db-tab-pane flex-grow-1 overflow-auto p-3" id="dbPaneStructure">
                              <div class="text-center text-muted p-5" id="dbStructurePlaceholder">
                                  <i class="bi bi-database mb-3 opacity-25" style="font-size: 3.5rem; display:block;"></i>
-                                 <span class="opacity-50">Select a database to view its structure</span>
+                                 <span class="opacity-50" data-i18n="select_db_view_structure">Select a database to view its structure</span>
                              </div>
                              <div id="dbStructureContent" class="d-none">
                                  <div class="d-flex justify-content-between align-items-center mb-3">
@@ -216,10 +217,10 @@ if (is_dir(__DIR__ . '/plugins')) {
                                      </h6>
                                      <div class="d-flex gap-2">
                                          <button class="btn btn-sm btn-outline-secondary" id="btnRefreshStructure">
-                                             <i class="bi bi-arrow-clockwise me-1"></i>Refresh
+                                             <i class="bi bi-arrow-clockwise me-1"></i><span data-i18n="refresh">Refresh</span>
                                          </button>
                                          <button class="btn btn-sm btn-outline-primary" id="btnNewQuery">
-                                             <i class="bi bi-plus me-1"></i>New SQL Query
+                                             <i class="bi bi-plus me-1"></i><span data-i18n="new_sql_query">New SQL Query</span>
                                          </button>
                                      </div>
                                  </div>
@@ -228,12 +229,12 @@ if (is_dir(__DIR__ . '/plugins')) {
                                          <table class="table table-dark table-hover mb-0" id="dbStructureTable" style="font-size: 0.82rem; width: max-content; min-width: 100%;">
                                              <thead>
                                                  <tr style="background: #27272a; border-bottom: 1px solid #3f3f46;">
-                                                     <th class="px-3 py-2" style="color: #a1a1aa; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; font-size: 0.72rem;">Table</th>
-                                                     <th class="px-3 py-2" style="color: #a1a1aa; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; font-size: 0.72rem;">Rows</th>
-                                                     <th class="px-3 py-2" style="color: #a1a1aa; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; font-size: 0.72rem;">Engine</th>
-                                                     <th class="px-3 py-2" style="color: #a1a1aa; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; font-size: 0.72rem;">Collation</th>
-                                                     <th class="px-3 py-2" style="color: #a1a1aa; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; font-size: 0.72rem;">Size</th>
-                                                     <th class="px-3 py-2" style="color: #a1a1aa; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; font-size: 0.72rem;">Actions</th>
+                                                     <th class="px-3 py-2" style="color: #a1a1aa; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; font-size: 0.72rem;" data-i18n="table">Table</th>
+                                                     <th class="px-3 py-2" style="color: #a1a1aa; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; font-size: 0.72rem;" data-i18n="rows">Rows</th>
+                                                     <th class="px-3 py-2" style="color: #a1a1aa; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; font-size: 0.72rem;" data-i18n="engine">Engine</th>
+                                                     <th class="px-3 py-2" style="color: #a1a1aa; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; font-size: 0.72rem;" data-i18n="collation">Collation</th>
+                                                     <th class="px-3 py-2" style="color: #a1a1aa; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; font-size: 0.72rem;" data-i18n="size">Size</th>
+                                                     <th class="px-3 py-2" style="color: #a1a1aa; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; font-size: 0.72rem;" data-i18n="actions">Actions</th>
                                                  </tr>
                                              </thead>
                                              <tbody id="dbStructureBody"></tbody>
@@ -254,10 +255,10 @@ if (is_dir(__DIR__ . '/plugins')) {
                          <!-- SQL Tab -->
                          <div class="db-tab-pane flex-grow-1 overflow-auto p-3 d-none" id="dbPaneSql">
                              <div class="mb-2 d-flex justify-content-between align-items-center">
-                                 <label class="form-label small text-muted text-uppercase fw-semibold mb-0" style="letter-spacing: 0.5px;">SQL Query Runner</label>
+                                 <label class="form-label small text-muted text-uppercase fw-semibold mb-0" style="letter-spacing: 0.5px;" data-i18n="sql_query_runner">SQL Query Runner</label>
                                  <div class="d-flex gap-2">
-                                     <button class="btn btn-sm btn-outline-secondary" id="btnClearSql"><i class="bi bi-trash me-1"></i>Clear</button>
-                                     <button class="btn btn-sm btn-outline-secondary" id="btnFormatSql"><i class="bi bi-text-left me-1"></i>Format</button>
+                                     <button class="btn btn-sm btn-outline-secondary" id="btnClearSql"><i class="bi bi-trash me-1"></i><span data-i18n="clear">Clear</span></button>
+                                     <button class="btn btn-sm btn-outline-secondary" id="btnFormatSql"><i class="bi bi-text-left me-1"></i><span data-i18n="format">Format</span></button>
                                  </div>
                              </div>
                              <div class="d-flex gap-2 mb-3">
@@ -265,7 +266,7 @@ if (is_dir(__DIR__ . '/plugins')) {
                              </div>
                              <div class="d-flex gap-2 mb-3">
                                  <button class="btn btn-success px-4 d-flex align-items-center gap-2" id="btnRunSql" style="border-radius: 8px;">
-                                     <i class="bi bi-play-fill fs-5"></i> <span>Run Query</span>
+                                     <i class="bi bi-play-fill fs-5"></i> <span data-i18n="run_query">Run Query</span>
                                  </button>
                                  <button class="btn btn-outline-secondary px-3 d-flex align-items-center gap-2" id="btnRunSqlExplain" style="border-radius: 8px;">
                                      <i class="bi bi-lightning me-1"></i>EXPLAIN
@@ -274,7 +275,7 @@ if (is_dir(__DIR__ . '/plugins')) {
                              <div id="sqlResultArea">
                                  <div class="text-center text-muted py-4">
                                      <i class="bi bi-terminal mb-2 opacity-25" style="font-size: 2.5rem; display:block;"></i>
-                                     <span class="opacity-50">Run a query to see the output</span>
+                                     <span class="opacity-50" data-i18n="run_query_output">Run a query to see the output</span>
                                  </div>
                              </div>
                          </div>
@@ -283,7 +284,7 @@ if (is_dir(__DIR__ . '/plugins')) {
                          <div class="db-tab-pane d-flex flex-column flex-grow-1 overflow-hidden d-none" id="dbPaneBrowse">
                              <div class="text-center text-muted py-5" id="dbBrowsePlaceholder">
                                  <i class="bi bi-table mb-3 opacity-25" style="font-size: 3.5rem; display:block;"></i>
-                                 <span class="opacity-50">Click "Browse" on a table from the Structure tab</span>
+                                 <span class="opacity-50" data-i18n="browse_hint">Click "Browse" on a table from the Structure tab</span>
                              </div>
                              <div id="dbBrowseContent" class="d-none d-flex flex-column flex-grow-1 overflow-hidden">
                                  <!-- Toolbar top -->
@@ -335,7 +336,7 @@ if (is_dir(__DIR__ . '/plugins')) {
                          <div class="db-tab-pane flex-grow-1 overflow-auto p-3 d-none" id="dbPaneColumns">
                              <div class="text-center text-muted py-5" id="dbColumnsPlaceholder">
                                  <i class="bi bi-list-columns-reverse mb-3 opacity-25" style="font-size: 3.5rem; display:block;"></i>
-                                 <span class="opacity-50">Click "Structure" on a table to view its columns</span>
+                                 <span class="opacity-50" data-i18n="columns_hint">Click "Structure" on a table to view its columns</span>
                              </div>
                              <div id="dbColumnsContent" class="d-none">
                                   <div class="d-flex justify-content-between align-items-center mb-3">
@@ -534,7 +535,7 @@ if (is_dir(__DIR__ . '/plugins')) {
                                 <span class="input-group-text bg-dark border-secondary text-success font-monospace" style="font-size: 0.85rem; border-color: rgba(255,255,255,0.15) !important;">$</span>
                                 <input type="text" id="sshConsoleInput" class="form-control bg-dark border-secondary text-light font-monospace shadow-none" placeholder="Type a command and press Enter..." style="font-size: 0.85rem; border-color: rgba(255,255,255,0.15) !important;" autocomplete="off">
                                 <button class="btn btn-success" id="btnSshSendCmd" type="button">
-                                    <i class="bi bi-send me-1"></i>Run
+                                    <i class="bi bi-send me-1"></i><span data-i18n="run">Run</span>
                                 </button>
                             </div>
                         </div>
@@ -542,16 +543,16 @@ if (is_dir(__DIR__ . '/plugins')) {
                     
                     <div id="editorPlaceholder" class="position-absolute top-0 start-0 w-100 h-100 bg-darker d-flex flex-column justify-content-center align-items-center text-muted" style="z-index: 10;">
                         <i class="bi bi-file-earmark-code mb-3 opacity-25" style="font-size: 4rem;"></i>
-                        <span class="opacity-50">Select a file to start editing</span>
+                        <span class="opacity-50" data-i18n="select_file_edit">Select a file to start editing</span>
                     </div>
                 </div>
             </div>
 
             <div class="flex-grow-1 d-flex justify-content-center align-items-center flex-column bg-darker" id="welcomeArea">
                 <i class="bi bi-broadcast text-secondary mb-4 opacity-25" style="font-size: 5rem;"></i>
-                <h4 class="text-secondary opacity-50 fw-normal">Select a session to connect</h4>
+                <h4 class="text-secondary opacity-50 fw-normal" data-i18n="select_session_connect">Select a session to connect</h4>
                 <button class="btn btn-primary mt-4 px-4 py-2 rounded-pill shadow" data-bs-toggle="modal" data-bs-target="#addSessionModal">
-                    <i class="bi bi-plus-lg me-2"></i> Add New Connection
+                    <i class="bi bi-plus-lg me-2"></i> <span data-i18n="add_new_connection">Add New Connection</span>
                 </button>
             </div>
         </div>
@@ -562,23 +563,23 @@ if (is_dir(__DIR__ . '/plugins')) {
             <div class="modal-content bg-dark text-light border-secondary shadow-lg" style="border-radius: 12px; overflow: hidden;">
                 <div class="modal-header border-secondary bg-darker p-4 pb-3">
                     <div>
-                        <h5 class="modal-title fw-bold mb-1">New Connection</h5>
-                        <p class="text-muted small mb-0">Select protocol and set credentials.</p>
+                        <h5 class="modal-title fw-bold mb-1" data-i18n="new_connection">New Connection</h5>
+                        <p class="text-muted small mb-0" data-i18n="select_protocol_set_cred">Select protocol and set credentials.</p>
                     </div>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body p-4">
                     <form id="addSessionForm">
                         <div class="mb-3">
-                            <label class="form-label small text-muted text-uppercase fw-semibold tracking-wide">Protocol</label>
+                            <label class="form-label small text-muted text-uppercase fw-semibold tracking-wide" data-i18n="protocol">Protocol</label>
                             <select class="form-select bg-darker text-light border-secondary" id="sessionProtocol" name="protocol" style="border-radius: 8px;">
-                                <option value="ftp">FTP Connection</option>
-                                <option value="mysql">MySQL Client (phpMyAdmin style)</option>
-                                <option value="ssh">Web SSH Client</option>
+                                <option value="ftp" data-i18n="ftp_connection">FTP Connection</option>
+                                <option value="mysql" data-i18n="mysql_client">MySQL Client (phpMyAdmin style)</option>
+                                <option value="ssh" data-i18n="web_ssh_client">Web SSH Client</option>
                             </select>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label small text-muted text-uppercase fw-semibold tracking-wide">Session Name</label>
+                            <label class="form-label small text-muted text-uppercase fw-semibold tracking-wide" data-i18n="session_name">Session Name</label>
                             <div class="input-group">
                                 <span class="input-group-text bg-darker border-secondary text-muted"><i class="bi bi-tag"></i></span>
                                 <input type="text" class="form-control bg-darker text-light border-secondary" name="name" placeholder="Session Name (optional, e.g. My Server)">
@@ -587,7 +588,7 @@ if (is_dir(__DIR__ . '/plugins')) {
                         
                         <div id="ftpFormFields" class="protocol-group">
                             <div class="mb-4">
-                                <label class="form-label small text-muted text-uppercase fw-semibold tracking-wide">FTP Server Details</label>
+                                <label class="form-label small text-muted text-uppercase fw-semibold tracking-wide" data-i18n="ftp_server_details">FTP Server Details</label>
                                 <div class="input-group mb-2">
                                     <span class="input-group-text bg-darker border-secondary text-muted"><i class="bi bi-globe"></i></span>
                                     <input type="text" class="form-control bg-darker text-light border-secondary" name="host" placeholder="Host (e.g. ftp.example.com)">
@@ -598,7 +599,7 @@ if (is_dir(__DIR__ . '/plugins')) {
                                 </div>
                             </div>
                             <div class="mb-3">
-                                <label class="form-label small text-muted text-uppercase fw-semibold tracking-wide">FTP Authentication</label>
+                                <label class="form-label small text-muted text-uppercase fw-semibold tracking-wide" data-i18n="ftp_authentication">FTP Authentication</label>
                                 <div class="input-group mb-2">
                                     <span class="input-group-text bg-darker border-secondary text-muted"><i class="bi bi-person"></i></span>
                                     <input type="text" class="form-control bg-darker text-light border-secondary" name="user" placeholder="Username">
@@ -612,7 +613,7 @@ if (is_dir(__DIR__ . '/plugins')) {
 
                         <div id="mysqlFormFields" class="protocol-group d-none">
                             <div class="mb-4">
-                                <label class="form-label small text-muted text-uppercase fw-semibold tracking-wide">MySQL Server Details</label>
+                                <label class="form-label small text-muted text-uppercase fw-semibold tracking-wide" data-i18n="mysql_server_details">MySQL Server Details</label>
                                 <div class="input-group mb-2">
                                     <span class="input-group-text bg-darker border-secondary text-muted"><i class="bi bi-globe"></i></span>
                                     <input type="text" class="form-control bg-darker text-light border-secondary" name="mysql_host" placeholder="Host (e.g. 127.0.0.1)">
@@ -627,7 +628,7 @@ if (is_dir(__DIR__ . '/plugins')) {
                                 </div>
                             </div>
                             <div class="mb-3">
-                                <label class="form-label small text-muted text-uppercase fw-semibold tracking-wide">MySQL Authentication</label>
+                                <label class="form-label small text-muted text-uppercase fw-semibold tracking-wide" data-i18n="mysql_authentication">MySQL Authentication</label>
                                 <div class="input-group mb-2">
                                     <span class="input-group-text bg-darker border-secondary text-muted"><i class="bi bi-person"></i></span>
                                     <input type="text" class="form-control bg-darker text-light border-secondary" name="mysql_user" placeholder="Username">
@@ -641,7 +642,7 @@ if (is_dir(__DIR__ . '/plugins')) {
 
                         <div id="sshFormFields" class="protocol-group d-none">
                             <div class="mb-4">
-                                <label class="form-label small text-muted text-uppercase fw-semibold tracking-wide">SSH Server Details</label>
+                                <label class="form-label small text-muted text-uppercase fw-semibold tracking-wide" data-i18n="ssh_server_details">SSH Server Details</label>
                                 <div class="input-group mb-2">
                                     <span class="input-group-text bg-darker border-secondary text-muted"><i class="bi bi-globe"></i></span>
                                     <input type="text" class="form-control bg-darker text-light border-secondary" name="ssh_host" placeholder="Host (e.g. ssh.example.com)">
@@ -652,7 +653,7 @@ if (is_dir(__DIR__ . '/plugins')) {
                                 </div>
                             </div>
                             <div class="mb-3">
-                                <label class="form-label small text-muted text-uppercase fw-semibold tracking-wide">SSH Authentication</label>
+                                <label class="form-label small text-muted text-uppercase fw-semibold tracking-wide" data-i18n="ssh_authentication">SSH Authentication</label>
                                 <div class="input-group mb-2">
                                     <span class="input-group-text bg-darker border-secondary text-muted"><i class="bi bi-person"></i></span>
                                     <input type="text" class="form-control bg-darker text-light border-secondary" name="ssh_user" placeholder="Username">
@@ -675,8 +676,8 @@ if (is_dir(__DIR__ . '/plugins')) {
                     </form>
                 </div>
                 <div class="modal-footer border-secondary bg-darker p-3">
-                    <button type="button" class="btn btn-dark border-secondary px-4" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary px-4" id="btnSaveSession">Save Connection</button>
+                    <button type="button" class="btn btn-dark border-secondary px-4" data-bs-dismiss="modal" data-i18n="cancel">Cancel</button>
+                    <button type="button" class="btn btn-primary px-4" id="btnSaveSession" data-i18n="save_connection">Save Connection</button>
                 </div>
             </div>
         </div>
@@ -705,8 +706,8 @@ if (is_dir(__DIR__ . '/plugins')) {
             <div class="modal-content bg-dark text-light border-secondary shadow-lg" style="border-radius: 12px; overflow: hidden;">
                 <div class="modal-header border-secondary bg-darker p-4 pb-3">
                     <div>
-                        <h5 class="modal-title fw-bold mb-1"><i class="bi bi-pencil-square text-warning me-2"></i>Edit Connection</h5>
-                        <p class="text-muted small mb-0">Modify credentials for this session.</p>
+                        <h5 class="modal-title fw-bold mb-1"><i class="bi bi-pencil-square text-warning me-2"></i><span data-i18n="edit_connection">Edit Connection</span></h5>
+                        <p class="text-muted small mb-0" data-i18n="modify_credentials">Modify credentials for this session.</p>
                     </div>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
@@ -884,7 +885,7 @@ if (is_dir(__DIR__ . '/plugins')) {
                 <div class="modal-header border-secondary" style="background-color: #18181b; padding: 20px 28px;">
                     <div class="d-flex align-items-center gap-2">
                         <i class="bi bi-shield-lock text-muted fs-5"></i>
-                        <h5 class="modal-title fw-bold mb-0 text-white">Edit Admin Credentials</h5>
+                        <h5 class="modal-title fw-bold mb-0 text-white" data-i18n="edit_admin_credentials">Edit Admin Credentials</h5>
                     </div>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
@@ -1119,8 +1120,8 @@ if (is_dir(__DIR__ . '/plugins')) {
             <div class="modal-content bg-dark text-light border-secondary shadow-lg" style="border-radius: 12px; overflow: hidden;">
                 <div class="modal-header border-secondary bg-darker p-4 pb-3">
                     <div>
-                        <h5 class="modal-title fw-bold mb-1"><i class="bi bi-puzzle text-primary me-2"></i>Plugins &amp; App Info</h5>
-                        <p class="text-muted small mb-0">Manage Fast Tunnel system plugins and view application details.</p>
+                        <h5 class="modal-title fw-bold mb-1"><i class="bi bi-puzzle text-primary me-2"></i><span data-i18n="plugins_app_info">Plugins &amp; App Info</span></h5>
+                        <p class="text-muted small mb-0" data-i18n="manage_plugins_desc">Manage Fast Tunnel system plugins and view application details.</p>
                     </div>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>

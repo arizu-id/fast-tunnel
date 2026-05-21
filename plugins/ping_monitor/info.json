@@ -1,0 +1,8 @@
+{
+    "name": "Session Ping Monitor",
+    "slug": "ping_monitor",
+    "version": "1.0.0",
+    "description": "Ping saved connection hosts and ports asynchronously to verify connectivity and display real-time latency badges.",
+    "author": "Arizu Studio",
+    "website": "https://arizu.id"
+}

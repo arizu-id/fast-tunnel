@@ -1,0 +1,365 @@
+/* ─── Multi-Theme Selector Plugin ─── */
+
+/* ── Smooth theme transition ── */
+:root {
+    --theme-transition-speed: 0.35s;
+}
+
+html, body,
+.panel-left, .panel-right, .panel-header,
+.bg-darker, .bg-dark,
+.modal-content, .modal-header, .modal-footer, .modal-body,
+.form-control, .input-group-text, .form-select,
+.btn-primary, .btn-dark, .btn-icon,
+.border-secondary,
+.session-item,
+.dropdown-menu, .dropdown-item,
+.db-sidebar, .file-explorer,
+.db-tabs-nav, .db-tab-btn,
+.table, .table th, .table td,
+.ssh-terminal-area,
+.context-menu-list {
+    transition:
+        background-color var(--theme-transition-speed) ease,
+        border-color var(--theme-transition-speed) ease,
+        color var(--theme-transition-speed) ease !important;
+}
+
+/* ────────────────────────────────────────────────────────────────
+   Comprehensive overrides for elements with hardcoded inline styles.
+   CSS `!important` beats inline styles.
+   ──────────────────────────────────────────────────────────────── */
+
+/* ── Sidebars ── */
+#dbSidebar,
+#sshSidebar {
+    background-color: var(--surface-1) !important;
+}
+
+/* ── DB Tabs Nav ── */
+#dbTabsNav {
+    background: var(--surface-2) !important;
+}
+
+/* ── Table headers ── */
+#dbStructureTable thead tr,
+#dbColumnsTableInner thead tr,
+#dbBrowseTable thead tr {
+    background: var(--surface-3) !important;
+}
+
+/* ── Table header cells ── */
+#dbStructureTable th,
+#dbColumnsTableInner th,
+#dbBrowseTable th {
+    color: var(--text-muted) !important;
+}
+
+/* ── Table body ── */
+.table-dark {
+    --bs-table-bg: var(--surface-1) !important;
+    --bs-table-border-color: var(--border) !important;
+}
+
+.table-dark td {
+    background-color: transparent !important;
+    border-color: var(--border) !important;
+}
+
+.table-dark tbody tr:hover td {
+    background-color: var(--surface-3) !important;
+}
+
+/* ── Browse table wrapper ── */
+#dbBrowseTableWrapper {
+    background: var(--surface-0) !important;
+}
+
+/* ── SSH Terminal ── */
+.ssh-terminal-area,
+#sshTerminal {
+    background: var(--surface-0) !important;
+}
+
+/* ── All Modal content/header/footer ── */
+.modal-content {
+    background-color: var(--surface-2) !important;
+    border-color: var(--border) !important;
+}
+
+.modal-header {
+    background-color: var(--surface-1) !important;
+    border-color: var(--border) !important;
+}
+
+.modal-footer {
+    background-color: var(--surface-1) !important;
+    border-color: var(--border) !important;
+}
+
+.modal-body {
+    background-color: var(--surface-2) !important;
+}
+
+/* ── Confirm modals with inline bg ── */
+#confirmModal .modal-content,
+#editCredentialsModal .modal-content,
+#aboutDevModal .modal-content,
+#privacyPolicyModal .modal-content,
+#termsModal .modal-content,
+#exportPasswordModal .modal-content,
+#importPasswordModal .modal-content,
+#pluginsModal .modal-content {
+    background-color: var(--surface-2) !important;
+}
+
+/* ── DB inline styled cards ── */
+.card[style*="background"] {
+    background-color: var(--surface-2) !important;
+    border-color: var(--border) !important;
+}
+
+/* ── About Dev links ── */
+#aboutDevModal a[style*="background"] {
+    background: var(--surface-3) !important;
+    border-color: var(--border) !important;
+}
+
+/* ── Dropdown menus ── */
+.dropdown-menu-dark {
+    background-color: var(--surface-2) !important;
+    border-color: var(--border) !important;
+}
+
+.dropdown-menu-dark .dropdown-item {
+    color: var(--text-base) !important;
+}
+
+.dropdown-menu-dark .dropdown-item:hover,
+.dropdown-menu-dark .dropdown-item:focus {
+    background-color: var(--surface-3) !important;
+}
+
+.dropdown-header {
+    color: var(--text-muted) !important;
+}
+
+/* ── Form controls ── */
+.form-control.bg-darker,
+.input-group-text.bg-darker,
+.form-select.bg-darker,
+.form-control.bg-dark,
+.form-select.bg-dark {
+    background-color: var(--surface-1) !important;
+    border-color: var(--border) !important;
+    color: var(--text-base) !important;
+}
+
+/* ── Button overrides ── */
+.btn-dark {
+    background-color: var(--surface-3) !important;
+    border-color: var(--border) !important;
+    color: var(--text-base) !important;
+}
+
+.btn-dark:hover {
+    background-color: var(--surface-4) !important;
+}
+
+.btn-icon {
+    color: var(--text-muted) !important;
+}
+
+.btn-icon:hover {
+    background-color: var(--surface-3) !important;
+    color: var(--text-base) !important;
+}
+
+.btn-success,
+.btn-primary {
+    background-color: var(--accent) !important;
+    border-color: var(--accent) !important;
+}
+
+.btn-success:hover,
+.btn-primary:hover {
+    filter: brightness(1.1);
+}
+
+.btn-outline-secondary {
+    border-color: var(--border) !important;
+    color: var(--text-muted) !important;
+}
+
+.btn-outline-secondary:hover {
+    background-color: var(--surface-3) !important;
+    color: var(--text-base) !important;
+}
+
+/* ── Session items ── */
+.session-item {
+    border-color: var(--border) !important;
+}
+
+.session-item:hover {
+    background-color: var(--surface-3) !important;
+}
+
+.session-item.active {
+    background-color: var(--accent-dim) !important;
+    border-color: var(--accent) !important;
+}
+
+/* ── Text classes ── */
+.text-muted {
+    color: var(--text-muted) !important;
+}
+
+/* ── Context menu ── */
+.context-menu-list {
+    background: var(--surface-2) !important;
+    border-color: var(--border) !important;
+}
+
+.context-menu-item:hover {
+    background-color: var(--surface-3) !important;
+}
+
+/* ── DB tab buttons ── */
+.db-tab-btn {
+    color: var(--text-dim) !important;
+}
+
+.db-tab-btn.active,
+.db-tab-btn:hover {
+    color: var(--accent) !important;
+}
+
+.db-tab-btn.active {
+    border-color: var(--accent) !important;
+}
+
+/* ── Editor action buttons ── */
+.btn-editor-save {
+    background: var(--accent) !important;
+    color: #fff !important;
+}
+
+/* ── Loading bar accent ── */
+#globalLoadingBar::before {
+    background: linear-gradient(90deg, var(--accent), var(--accent-blue, #3b82f6), var(--accent-purple, #8b5cf6)) !important;
+}
+
+/* ── Scrollbars ── */
+::-webkit-scrollbar-track {
+    background: var(--surface-0) !important;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--surface-4) !important;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--surface-5) !important;
+}
+
+/* ── About Dev card icon bg ── */
+#aboutDevModal .modal-header div[style*="linear-gradient"] {
+    background: linear-gradient(135deg, var(--surface-5), var(--border-lite)) !important;
+}
+
+/* ── Ping badge on sessions ── */
+.ping-badge {
+    border-color: var(--border) !important;
+}
+
+/* ── Editor placeholder ── */
+#editorPlaceholder {
+    background-color: var(--surface-1) !important;
+}
+
+/* ─────────────────────────────────────────
+   Theme Picker Modal
+   ───────────────────────────────────────── */
+.theme-card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(155px, 1fr));
+    gap: 12px;
+    max-height: 55vh;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.theme-card {
+    position: relative;
+    border-radius: 12px;
+    border: 2px solid rgba(255,255,255,0.06);
+    padding: 14px;
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+}
+
+.theme-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(255,255,255,0.15);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+}
+
+.theme-card.active {
+    border-color: var(--accent) !important;
+    box-shadow: 0 0 0 1px var(--accent), 0 8px 24px rgba(0,0,0,0.3);
+}
+
+.theme-card.active::after {
+    content: "\F272"; /* bi-check-lg */
+    font-family: "bootstrap-icons";
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    font-size: 14px;
+    color: var(--accent);
+    text-shadow: 0 1px 3px rgba(0,0,0,0.4);
+}
+
+.theme-card-palette {
+    display: flex;
+    gap: 3px;
+    margin-bottom: 10px;
+    height: 24px;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.theme-card-palette span {
+    flex: 1;
+    display: block;
+}
+
+.theme-card-palette span:first-child { border-radius: 5px 0 0 5px; }
+.theme-card-palette span:last-child { border-radius: 0 5px 5px 0; }
+
+.theme-card-name {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #e4e4e7;
+    margin-bottom: 2px;
+}
+
+.theme-card-desc {
+    font-size: 0.65rem;
+    color: #71717a;
+    line-height: 1.3;
+}
+
+/* Scrollbar for theme grid */
+.theme-card-grid::-webkit-scrollbar {
+    width: 4px;
+}
+.theme-card-grid::-webkit-scrollbar-track {
+    background: transparent;
+}
+.theme-card-grid::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.1);
+    border-radius: 4px;
+}

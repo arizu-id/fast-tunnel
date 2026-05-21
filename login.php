@@ -46,19 +46,19 @@ body{background:#0a0a0c;font-family:'Inter',sans-serif;min-height:100vh;display:
 <div class="login-card">
 <div class="login-logo">
 <h1><i class="bi bi-lightning-charge-fill"></i> Fast Tunnel</h1>
-<p>Secure Server Management</p>
+<p data-i18n="secure_server_mgmt">Secure Server Management</p>
 </div>
 <div class="login-error" id="loginError"></div>
 <form id="loginForm" autocomplete="off">
 <div class="form-group">
-<label for="loginUser">Username</label>
+<label for="loginUser" data-i18n="username">Username</label>
 <input type="text" id="loginUser" name="username" placeholder="Enter username" autocomplete="username" required>
 </div>
 <div class="form-group">
-<label for="loginPass">Password</label>
+<label for="loginPass" data-i18n="password">Password</label>
 <input type="password" id="loginPass" name="password" placeholder="Enter password" autocomplete="current-password" required>
 </div>
-<button type="submit" class="btn-login" id="btnLogin">Sign In</button>
+<button type="submit" class="btn-login" id="btnLogin" data-i18n="sign_in">Sign In</button>
 </form>
 <div class="login-footer">Fast Tunnel · Arizu Studio</div>
 </div>
