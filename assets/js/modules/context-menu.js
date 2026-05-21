@@ -1,5 +1,5 @@
 import { state } from './state.js';
-import { selectItem } from './helpers.js';
+import { selectItem, getParentPath } from './helpers.js';
 import { promptInput } from './ui.js';
 import { toggleFolder, expandAndRefreshFolder, createNewFile, createNewFolder, renameItem, deleteItem } from './ftp.js';
 import { openFile } from './editor.js';
@@ -23,7 +23,7 @@ export function initContextMenu() {
             const items = {};
             if (isDir) {
                 items.open = {
-                    name: `${ctxIcon('bi-folder2-open')} Open Folder`,
+                    name: `${ctxIcon('bi-folder2-open')} ${window.__ft_translate('open_folder', 'Open Folder')}`,
                     isHtmlName: true,
                     callback: function() {
                         const $children = $trigger.find('.tree-children').first();
@@ -31,33 +31,49 @@ export function initContextMenu() {
                     }
                 };
                 items.new_file = {
-                    name: `${ctxIcon('bi-file-earmark-plus')} New File`,
+                    name: `${ctxIcon('bi-file-earmark-plus')} ${window.__ft_translate('new_file', 'New File')}`,
                     isHtmlName: true,
                     callback: function() {
                         promptInput('New File Name:', function(n) { createNewFile(path, n); });
                     }
                 };
                 items.new_folder = {
-                    name: `${ctxIcon('bi-folder-plus')} New Folder`,
+                    name: `${ctxIcon('bi-folder-plus')} ${window.__ft_translate('new_folder', 'New Folder')}`,
                     isHtmlName: true,
                     callback: function() {
                         promptInput('New Folder Name:', function(n) { createNewFolder(path, n); });
                     }
                 };
+                items.upload_file = {
+                    name: `${ctxIcon('bi-upload')} ${window.__ft_translate('upload_file', 'Upload File')}`,
+                    isHtmlName: true,
+                    callback: function() {
+                        state.uploadDestFolder = path;
+                        $('#fileUploadInput').trigger('click');
+                    }
+                };
                 items.refresh = {
-                    name: `${ctxIcon('bi-arrow-clockwise')} Refresh`,
+                    name: `${ctxIcon('bi-arrow-clockwise')} ${window.__ft_translate('refresh', 'Refresh')}`,
                     isHtmlName: true,
                     callback: function() { expandAndRefreshFolder(path); }
                 };
             } else {
                 items.open = {
-                    name: `${ctxIcon('bi-pencil-square')} Open File`,
+                    name: `${ctxIcon('bi-pencil-square')} ${window.__ft_translate('open_file', 'Open File')}`,
                     isHtmlName: true,
                     callback: function() { openFile(path, name); }
                 };
+                items.upload_file = {
+                    name: `${ctxIcon('bi-upload')} ${window.__ft_translate('upload_file', 'Upload File')}`,
+                    isHtmlName: true,
+                    callback: function() {
+                        state.uploadDestFolder = getParentPath(path);
+                        $('#fileUploadInput').trigger('click');
+                    }
+                };
             }
             items.rename = {
-                name: `${ctxIcon('bi-pen')} Rename`,
+                name: `${ctxIcon('bi-pen')} ${window.__ft_translate('rename', 'Rename')}`,
                 isHtmlName: true,
                 callback: function() {
                     promptInput('New Name:', function(newName) {
@@ -67,7 +83,7 @@ export function initContextMenu() {
             };
             items.sep1 = '--------';
             items.delete = {
-                name: `${ctxIcon('bi-trash3', 'text-danger')} <span style="color:#f87171;">Delete</span>`,
+                name: `${ctxIcon('bi-trash3', 'text-danger')} <span style="color:#f87171;">${window.__ft_translate('delete', 'Delete')}</span>`,
                 isHtmlName: true,
                 className: 'ctx-item-delete',
                 callback: function() { deleteItem(path, isDir); }
@@ -85,7 +101,7 @@ export function initContextMenu() {
             return {
                 items: {
                     new_file: {
-                        name: `${ctxIcon('bi-file-earmark-plus')} New File`,
+                        name: `${ctxIcon('bi-file-earmark-plus')} ${window.__ft_translate('new_file', 'New File')}`,
                         isHtmlName: true,
                         callback: function() {
                             const path = state.selectedPath || '/';
@@ -93,16 +109,24 @@ export function initContextMenu() {
                         }
                     },
                     new_folder: {
-                        name: `${ctxIcon('bi-folder-plus')} New Folder`,
+                        name: `${ctxIcon('bi-folder-plus')} ${window.__ft_translate('new_folder', 'New Folder')}`,
                         isHtmlName: true,
                         callback: function() {
                             const path = state.selectedPath || '/';
                             promptInput('New Folder Name:', function(n) { createNewFolder(path, n); });
                         }
                     },
+                    upload_file: {
+                        name: `${ctxIcon('bi-upload')} ${window.__ft_translate('upload_file', 'Upload File')}`,
+                        isHtmlName: true,
+                        callback: function() {
+                            state.uploadDestFolder = state.currentPath || '/';
+                            $('#fileUploadInput').trigger('click');
+                        }
+                    },
                     sep1: '--------',
                     refresh: {
-                        name: `${ctxIcon('bi-arrow-clockwise')} Refresh`,
+                        name: `${ctxIcon('bi-arrow-clockwise')} ${window.__ft_translate('refresh', 'Refresh')}`,
                         isHtmlName: true,
                         callback: function() { expandAndRefreshFolder(state.currentPath || '/'); }
                     }
@@ -118,21 +142,21 @@ export function initContextMenu() {
             return {
                 items: {
                     connect: {
-                        name: `${ctxIcon('bi-link-45deg')} Connect`,
+                        name: `${ctxIcon('bi-link-45deg')} ${window.__ft_translate('connect', 'Connect')}`,
                         isHtmlName: true,
                         callback: function() {
                             $trigger.click();
                         }
                     },
                     edit: {
-                        name: `${ctxIcon('bi-pencil-square')} Edit`,
+                        name: `${ctxIcon('bi-pencil-square')} ${window.__ft_translate('edit', 'Edit')}`,
                         isHtmlName: true,
                         callback: function() {
                             editSession(id);
                         }
                     },
                     export: {
-                        name: `${ctxIcon('bi-box-arrow-up')} Export`,
+                        name: `${ctxIcon('bi-box-arrow-up')} ${window.__ft_translate('export', 'Export')}`,
                         isHtmlName: true,
                         callback: function() {
                             exportSingleSession(id);
@@ -140,7 +164,7 @@ export function initContextMenu() {
                     },
                     sep1: '--------',
                     delete: {
-                        name: `${ctxIcon('bi-trash3', 'text-danger')} <span style="color:#f87171;">Delete</span>`,
+                        name: `${ctxIcon('bi-trash3', 'text-danger')} <span style="color:#f87171;">${window.__ft_translate('delete', 'Delete')}</span>`,
                         isHtmlName: true,
                         className: 'ctx-item-delete',
                         callback: function() {

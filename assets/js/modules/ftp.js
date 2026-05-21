@@ -89,9 +89,10 @@ function renderTreeItems(files, $container, parentPath) {
     }
     files.forEach(item => {
         const fullPath = (parentPath === '/' ? '' : parentPath) + '/' + item.name;
+        let $item;
         if (item.isDir) {
-            const $item = $(`
-                <div class="tree-item folder-item" data-path="${fullPath}" data-is-dir="true" data-expanded="false">
+            $item = $(`
+                <div class="tree-item folder-item" data-path="${fullPath}" data-is-dir="true" data-expanded="false" draggable="true">
                     <div class="tree-row d-flex align-items-center">
                         <span class="chevron-icon me-1"><i class="bi bi-chevron-right"></i></span>
                         <i class="bi bi-folder2 me-2 text-warning"></i>
@@ -107,11 +108,36 @@ function renderTreeItems(files, $container, parentPath) {
                 selectItem(fullPath, true);
                 toggleFolder(fullPath, $item, $children);
             });
-            $container.append($item);
+
+            // Drag over/leave/drop handlers for folders
+            $item.on('dragover', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                $item.addClass('drag-hover');
+            });
+            $item.on('dragleave', function(e) {
+                e.stopPropagation();
+                $item.removeClass('drag-hover');
+            });
+            $item.on('drop', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                $item.removeClass('drag-hover');
+                
+                const files = e.originalEvent.dataTransfer.files;
+                if (files && files.length > 0) {
+                    uploadFiles(files, fullPath);
+                } else {
+                    const sourcePath = e.originalEvent.dataTransfer.getData('text/plain');
+                    const itemType = e.originalEvent.dataTransfer.getData('item-type');
+                    if (!sourcePath) return;
+                    moveItem(sourcePath, fullPath, itemType === 'dir');
+                }
+            });
         } else {
             const iconClass = getFileIconClass(item.name);
-            const $item = $(`
-                <div class="tree-item file-item" data-path="${fullPath}" data-is-dir="false">
+            $item = $(`
+                <div class="tree-item file-item" data-path="${fullPath}" data-is-dir="false" draggable="true">
                     <div class="tree-row d-flex align-items-center ps-3">
                         <i class="bi ${iconClass} me-2 text-secondary"></i>
                         <span class="item-name text-truncate">${item.name}</span>
@@ -123,8 +149,21 @@ function renderTreeItems(files, $container, parentPath) {
                 selectItem(fullPath, false);
                 openFile(fullPath, item.name);
             });
-            $container.append($item);
         }
+
+        // Drag start and end handlers for tree items
+        $item.on('dragstart', function(e) {
+            e.stopPropagation();
+            e.originalEvent.dataTransfer.setData('text/plain', fullPath);
+            e.originalEvent.dataTransfer.setData('item-type', item.isDir ? 'dir' : 'file');
+            $item.addClass('dragging');
+        });
+        $item.on('dragend', function(e) {
+            e.stopPropagation();
+            $item.removeClass('dragging');
+        });
+
+        $container.append($item);
     });
 }
 export function toggleFolder(path, $item, $children) {
@@ -162,6 +201,23 @@ export function toggleFolder(path, $item, $children) {
     }
 }
 export function expandAndRefreshFolder(path) {
+    if (path === '/') {
+        const $tree = $('#fileList');
+        $.ajax({
+            url: '/api/list',
+            type: 'POST',
+            contentType: 'application/json',
+            dataType: 'json',
+            data: JSON.stringify({ dir: '/' }),
+            success: function(res) {
+                if (res.success) {
+                    $tree.empty();
+                    renderTreeItems(res.files || [], $tree, '/');
+                }
+            }
+        });
+        return;
+    }
     const $item = $(`.tree-item[data-path="${path}"]`);
     if ($item.length === 0) return;
     const $children = $item.find('.tree-children').first();
@@ -287,3 +343,102 @@ export function deleteItem(path, isDir) {
         }
     );
 }
+
+export function moveItem(sourcePath, destFolder, isDir) {
+    if (sourcePath === destFolder) return;
+    const name = sourcePath.split('/').pop();
+    const sourceParent = getParentPath(sourcePath);
+    if (sourceParent === destFolder) return;
+    if (isDir && (destFolder === sourcePath || destFolder.startsWith(sourcePath + '/'))) {
+        showToast('Cannot move a folder inside itself', 'danger');
+        return;
+    }
+    const newPath = (destFolder === '/' ? '' : destFolder) + '/' + name;
+    $.ajax({
+        url: '/api/rename',
+        type: 'POST',
+        contentType: 'application/json',
+        dataType: 'json',
+        data: JSON.stringify({ old: sourcePath, new: newPath }),
+        success: function(res) {
+            if (res.success) {
+                showToast('Moved successfully');
+                expandAndRefreshFolder(sourceParent);
+                expandAndRefreshFolder(destFolder);
+                if (!isDir) {
+                    const tab = state.openTabs.find(t => t.path === sourcePath);
+                    if (tab) {
+                        tab.path = newPath;
+                        if (state.currentOpenedFile === sourcePath) {
+                            state.currentOpenedFile = newPath;
+                        }
+                        renderTabs();
+                    }
+                }
+            } else {
+                showToast(res.error || 'Failed to move', 'danger');
+            }
+        },
+        error: function() {
+            showToast('Error moving item', 'danger');
+        }
+    });
+}
+
+export function uploadFiles(files, destFolder) {
+    if (!files || files.length === 0) return;
+    const formData = new FormData();
+    formData.append('dir', destFolder);
+    for (let i = 0; i < files.length; i++) {
+        formData.append('files[]', files[i]);
+    }
+    showToast(`Uploading ${files.length} file(s)...`, 'info');
+    $.ajax({
+        url: '/api/upload',
+        type: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        success: function(res) {
+            if (res.success) {
+                showToast('Uploaded successfully', 'success');
+                expandAndRefreshFolder(destFolder);
+            } else {
+                showToast(res.error || 'Upload failed', 'danger');
+            }
+        },
+        error: function(xhr) {
+            let msg = 'Upload failed';
+            try { msg = JSON.parse(xhr.responseText).error || msg; } catch(e) {}
+            showToast(msg, 'danger');
+        }
+    });
+}
+
+$(document).ready(function() {
+    const $fileList = $('#fileList');
+    $fileList.on('dragover', function(e) {
+        e.preventDefault();
+        $fileList.addClass('drag-hover');
+    });
+    $fileList.on('dragleave', function(e) {
+        $fileList.removeClass('drag-hover');
+    });
+    $fileList.on('drop', function(e) {
+        e.preventDefault();
+        $fileList.removeClass('drag-hover');
+        if ($(e.target).closest('.folder-item').length > 0) {
+            return;
+        }
+        const files = e.originalEvent.dataTransfer.files;
+        const destFolder = state.currentPath || '/';
+        if (files && files.length > 0) {
+            uploadFiles(files, destFolder);
+        } else {
+            const sourcePath = e.originalEvent.dataTransfer.getData('text/plain');
+            const itemType = e.originalEvent.dataTransfer.getData('item-type');
+            if (!sourcePath) return;
+            moveItem(sourcePath, destFolder, itemType === 'dir');
+        }
+    });
+});

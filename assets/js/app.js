@@ -2,7 +2,7 @@ import { state } from './modules/state.js';
 import { getParentPath } from './modules/helpers.js';
 import { promptInput, showToast, showConfirmModal } from './modules/ui.js';
 import { loadSessions, saveSession, exportSessions, handleImportFile, doExportWithPassword, doImportWithPassword } from './modules/sessions.js';
-import { expandAndRefreshFolder, createNewFile, createNewFolder } from './modules/ftp.js';
+import { expandAndRefreshFolder, createNewFile, createNewFolder, uploadFiles } from './modules/ftp.js';
 import { initMonacoEditor, saveCurrentFile, closeTab } from './modules/editor.js';
 import { initContextMenu } from './modules/context-menu.js';
 import './modules/loading-bar.js';
@@ -135,6 +135,18 @@ $(document).ready(function() {
     $('#btnRefresh').click(function() {
         const path = state.selectedPath || state.currentPath || '/';
         expandAndRefreshFolder(path);
+    });
+    $('#btnUploadFile').click(function() {
+        state.uploadDestFolder = state.selectedPath && state.selectedIsDir ? state.selectedPath : (state.currentPath || '/');
+        $('#fileUploadInput').trigger('click');
+    });
+    $('#fileUploadInput').change(function() {
+        const files = this.files;
+        if (!files || files.length === 0) return;
+        const destFolder = state.uploadDestFolder || (state.selectedPath && state.selectedIsDir ? state.selectedPath : (state.currentPath || '/'));
+        uploadFiles(files, destFolder);
+        state.uploadDestFolder = null;
+        $(this).val('');
     });
     $('#btnSaveFile').click(function() {
         saveCurrentFile();

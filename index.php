@@ -25,13 +25,11 @@ if (is_dir(__DIR__ . '/plugins')) {
         window.FAST_TUNNEL_PLUGINS = <?php echo json_encode($activePlugins); ?>;
         window.__ft_translate = window.__ft_translate || function(key, fallback) { return fallback || key; };
     </script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jquery-contextmenu/2.9.2/jquery.contextMenu.min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.css">
+    <link href="assets/vendor/fonts/inter.css" rel="stylesheet">
+    <link href="assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="assets/vendor/bootstrap-icons/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="assets/vendor/jquery-contextmenu/jquery.contextMenu.min.css">
+    <link rel="stylesheet" href="assets/vendor/xterm/xterm.css">
     <link rel="stylesheet" href="assets/css/style.css?v=<?php echo time(); ?>">
     <?php
     foreach ($activePlugins as $plugin) {
@@ -59,6 +57,7 @@ if (is_dir(__DIR__ . '/plugins')) {
                 </div>
             </div>
             <input type="file" id="importFileInput" accept=".json" style="display:none;">
+            <input type="file" id="fileUploadInput" multiple style="display:none;">
             <div class="flex-grow-1 overflow-auto session-list py-2" id="sessionList">
             </div>
         </div>
@@ -139,6 +138,7 @@ if (is_dir(__DIR__ . '/plugins')) {
                         <div class="btn-group gap-1">
                             <button class="btn btn-sm btn-icon" id="btnAddFile" title="New File" data-i18n-title="new_file"><i class="bi bi-file-earmark-plus"></i></button>
                             <button class="btn btn-sm btn-icon" id="btnAddFolder" title="New Folder" data-i18n-title="new_folder"><i class="bi bi-folder-plus"></i></button>
+                            <button class="btn btn-sm btn-icon" id="btnUploadFile" title="Upload File" data-i18n-title="upload_file"><i class="bi bi-upload"></i></button>
                             <button class="btn btn-sm btn-icon" id="btnRefresh" title="Refresh" data-i18n-title="refresh"><i class="bi bi-arrow-clockwise"></i></button>
                         </div>
                     </div>
@@ -998,7 +998,7 @@ if (is_dir(__DIR__ . '/plugins')) {
                     <p>When you export sessions, they are encrypted client-side using a password you specify, ensuring your credentials cannot be read by unauthorized parties during transport.</p>
 
                     <h6 class="text-white fw-semibold mt-4 mb-2">3. Third-Party Services</h6>
-                    <p>This application loads resources from the following CDNs for functionality: Bootstrap, jQuery, Monaco Editor, and Bootstrap Icons. These services may collect standard browser request data (e.g., IP address) according to their own privacy policies.</p>
+                    <p>This application is fully self-contained. All libraries and assets (Bootstrap, jQuery, Monaco Editor, Bootstrap Icons, Inter Font) are bundled locally and served from your own server. No external CDN requests are made during normal operation, ensuring complete privacy and offline capability.</p>
 
                     <h6 class="text-white fw-semibold mt-4 mb-2">4. No Analytics or Tracking</h6>
                     <p>This application does not include any analytics, tracking pixels, cookies, or telemetry of any kind. Your usage remains entirely private.</p>
@@ -1176,13 +1176,13 @@ if (is_dir(__DIR__ . '/plugins')) {
     <div class="sidebar-backdrop d-none" id="sidebarBackdrop"></div>
     <div class="toast-container position-fixed bottom-0 end-0 p-3"></div>
 
-    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-contextmenu/2.9.2/jquery.contextMenu.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-contextmenu/2.9.2/jquery.ui.position.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.min.js"></script>
+    <script src="assets/vendor/jquery/jquery.min.js"></script>
+    <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+    <script src="assets/vendor/jquery-contextmenu/jquery.contextMenu.min.js"></script>
+    <script src="assets/vendor/jquery-contextmenu/jquery.ui.position.js"></script>
+    <script src="assets/vendor/xterm/xterm.js"></script>
+    <script src="assets/vendor/xterm/xterm-addon-fit.js"></script>
+    <script src="assets/vendor/monaco-editor/min/vs/loader.js"></script>
     <script type="importmap">
     {
       "imports": {

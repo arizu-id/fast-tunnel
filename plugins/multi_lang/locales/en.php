@@ -152,4 +152,5 @@
     'reset_default' => 'Reset Default',
     'choose_theme' => 'Choose a visual theme for your workspace.',
     'choose_language' => 'Choose your preferred language.',
+    'upload_file' => 'Upload File',
 ];

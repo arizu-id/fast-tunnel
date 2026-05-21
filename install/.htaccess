@@ -1,0 +1,9 @@
+# Allow access to installer PHP files only
+<FilesMatch "^(index|check|verify|setup)\.php$">
+    Require all granted
+</FilesMatch>
+
+# Block everything else
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>

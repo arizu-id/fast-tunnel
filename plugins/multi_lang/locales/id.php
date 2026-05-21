@@ -135,4 +135,5 @@
     'reset_default' => 'Reset Default',
     'choose_theme' => 'Pilih tema visual untuk ruang kerja Anda.',
     'choose_language' => 'Pilih bahasa yang Anda inginkan.',
+    'upload_file' => 'Unggah File',
 ];

@@ -927,3 +927,18 @@ html, body {
     background-color: var(--border-lite) !important;
     border-radius: 3px !important;
 }
+
+/* Drag and Drop styling */
+.tree-item.dragging {
+    opacity: 0.4;
+    border: 1px dashed var(--accent);
+}
+.tree-item.folder-item.drag-hover > .tree-row {
+    background-color: var(--surface-5) !important;
+    border: 1px dashed var(--accent);
+}
+#fileList.drag-hover {
+    background-color: rgba(255, 255, 255, 0.03) !important;
+    border: 2px dashed var(--accent);
+}
+

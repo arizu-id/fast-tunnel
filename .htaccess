@@ -1,13 +1,25 @@
 <IfModule mod_rewrite.c>
     RewriteEngine On
+
+    # ── Redirect to installer if not yet installed ──
+    RewriteCond %{REQUEST_URI} !^/install/
+    RewriteCond %{REQUEST_URI} !^/assets/
+    RewriteCond %{DOCUMENT_ROOT}/install/index.php -f
+    RewriteCond %{DOCUMENT_ROOT}/installed.lock !-f
+    RewriteRule ^(.*)$ /install/index.php [R=302,L]
+
+    # ── Security: Block direct access ──
     RewriteRule ^backend/ - [F,L]
     RewriteRule ^config\.php$ - [F,L]
-    RewriteRule ^install\.php$ - [F,L]
+    RewriteRule ^config\.sample\.php$ - [F,L]
+    RewriteRule ^installed\.lock$ - [F,L]
     RewriteRule ^temp_ssh/ - [F,L]
     RewriteRule ^vendor/ - [F,L]
     RewriteRule ^scratch/ - [F,L]
     RewriteRule \.json$ - [F,L]
     RewriteRule ^(\.git|\.env|\.htaccess) - [F,L]
+
+    # ── Pretty URLs ──
     RewriteRule ^login$ login.php [L]
     RewriteRule ^logout$ login.php?action=logout [L]
     RewriteRule ^api/([^/]+)$ api.php?action=$1 [QSA,L]
@@ -20,6 +32,7 @@
     Header always set X-Content-Type-Options "nosniff"
     Header always set Referrer-Policy "same-origin"
     Header always set X-XSS-Protection "1; mode=block"
+    Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob:; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self'; worker-src 'self' blob:; frame-src 'none'"
 
     # Prevent caching of JS and CSS assets to ensure clean updates
     <FilesMatch "\.(js|css)$">

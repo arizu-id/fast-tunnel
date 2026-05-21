@@ -1,7 +1,7 @@
 import { state } from './state.js';
 import { showToast } from './ui.js';
 export function initMonacoEditor() {
-    require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs' } });
+    require.config({ paths: { 'vs': '/assets/vendor/monaco-editor/min/vs' } });
     require(['vs/editor/editor.main'], function() {
         state.editor = monaco.editor.create(document.getElementById('monacoEditorEl'), {
             value: '',

@@ -19,8 +19,8 @@ if (Auth::check()) {
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Fast Tunnel — Login</title>
 <link rel="stylesheet" href="/assets/css/style.css">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/vendor/bootstrap-icons/bootstrap-icons.min.css">
+<link href="/assets/vendor/fonts/inter.css" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:#0a0a0c;font-family:'Inter',sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;color:#e4e4e7}

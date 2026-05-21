@@ -105,6 +105,34 @@ $ftp->deleteFile($path);
 }
 echo json_encode(['success'=>true]);
 break;
+case 'upload':
+$ftp=getConnectedFtp();
+$dir=$_POST['dir']??'.';
+if(!isset($_FILES['files'])){
+throw new Exception("No files uploaded");
+}
+$files=$_FILES['files'];
+if(!is_array($files['name'])){
+$files=[
+'name'=>[$files['name']],
+'type'=>[$files['type']],
+'tmp_name'=>[$files['tmp_name']],
+'error'=>[$files['error']],
+'size'=>[$files['size']]
+];
+}
+for($i=0;$i<count($files['name']);$i++){
+if($files['error'][$i]!==UPLOAD_ERR_OK){
+throw new Exception("Upload error for file ".$files['name'][$i].": ".$files['error'][$i]);
+}
+$name=$files['name'][$i];
+$tmpName=$files['tmp_name'][$i];
+$remoteFile=rtrim($dir,'/').'/'.$name;
+$content=file_get_contents($tmpName);
+$ftp->writeFile($remoteFile,$content);
+}
+echo json_encode(['success'=>true]);
+break;
 default:
 throw new Exception("Invalid action POST: $action");
 }
