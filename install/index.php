@@ -95,7 +95,6 @@ body{background:var(--surface-0);color:var(--text);font-family:'Inter',system-ui
                 <div class="step-dot" id="dot1"></div>
                 <div class="step-dot" id="dot2"></div>
                 <div class="step-dot" id="dot3"></div>
-                <div class="step-dot" id="dot4"></div>
             </div>
 
             <!-- Step 0: System Check -->
@@ -108,24 +107,8 @@ body{background:var(--surface-0);color:var(--text);font-family:'Inter',system-ui
                 <div class="alert alert-error" id="checkError"></div>
             </div>
 
-            <!-- Step 1: License -->
+            <!-- Step 1: Database -->
             <div class="step-panel" id="step1">
-                <h3 style="font-size:0.95rem;margin-bottom:4px"><i class="bi bi-key me-1"></i> License Verification</h3>
-                <p style="color:var(--text-muted);font-size:0.78rem;margin-bottom:16px">Enter your CodeCanyon purchase code to verify your license.</p>
-                <div class="alert alert-error" id="licenseError"></div>
-                <div class="form-group">
-                    <label>Email Address</label>
-                    <input type="email" id="licenseEmail" placeholder="your@email.com" required>
-                </div>
-                <div class="form-group">
-                    <label>Purchase Code</label>
-                    <input type="text" id="licenseCode" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" required>
-                </div>
-                <p style="font-size:0.72rem;color:var(--text-dim)"><i class="bi bi-info-circle me-1"></i> Find your purchase code in your <a href="https://codecanyon.net/downloads" target="_blank" style="color:var(--accent)">CodeCanyon Downloads</a> page.</p>
-            </div>
-
-            <!-- Step 2: Database -->
-            <div class="step-panel" id="step2">
                 <h3 style="font-size:0.95rem;margin-bottom:4px"><i class="bi bi-database me-1"></i> Database Configuration</h3>
                 <p style="color:var(--text-muted);font-size:0.78rem;margin-bottom:16px">Enter your MySQL database credentials.</p>
                 <div class="alert alert-error" id="dbError"></div>
@@ -155,8 +138,8 @@ body{background:var(--surface-0);color:var(--text);font-family:'Inter',system-ui
                 </div>
             </div>
 
-            <!-- Step 3: Admin -->
-            <div class="step-panel" id="step3">
+            <!-- Step 2: Admin -->
+            <div class="step-panel" id="step2">
                 <h3 style="font-size:0.95rem;margin-bottom:4px"><i class="bi bi-person-badge me-1"></i> Admin Account</h3>
                 <p style="color:var(--text-muted);font-size:0.78rem;margin-bottom:16px">Create the administrator account for Fast Tunnel.</p>
                 <div class="alert alert-error" id="adminError"></div>
@@ -176,8 +159,8 @@ body{background:var(--surface-0);color:var(--text);font-family:'Inter',system-ui
                 </div>
             </div>
 
-            <!-- Step 4: Complete -->
-            <div class="step-panel" id="step4">
+            <!-- Step 3: Complete -->
+            <div class="step-panel" id="step3">
                 <div class="completion">
                     <div class="icon"><i class="bi bi-check-circle-fill"></i></div>
                     <h2>Installation Complete!</h2>
@@ -206,8 +189,6 @@ body{background:var(--surface-0);color:var(--text);font-family:'Inter',system-ui
 <script>
 let currentStep = 0;
 let systemCheckPassed = false;
-let licenseVerified = false;
-let licenseData = {};
 
 // ── Step Navigation ──
 function showStep(n) {
@@ -217,14 +198,14 @@ function showStep(n) {
     document.querySelectorAll('.step-dot').forEach((d, i) => {
         d.className = 'step-dot' + (i < n ? ' done' : i === n ? ' active' : '');
     });
-    document.getElementById('btnPrev').style.display = n > 0 && n < 4 ? '' : 'none';
+    document.getElementById('btnPrev').style.display = n > 0 && n < 3 ? '' : 'none';
     const btn = document.getElementById('btnNext');
-    if (n === 4) {
+    if (n === 3) {
         btn.disabled = false;
         btn.innerHTML = '<i class="bi bi-box-arrow-in-right"></i> Go to Fast Tunnel';
         btn.onclick = () => window.location.href = '/';
     } else {
-        const label = n === 3 ? 'Install' : (n === 0 && !systemCheckPassed) ? 'Checking...' : 'Continue';
+        const label = n === 2 ? 'Install' : (n === 0 && !systemCheckPassed) ? 'Checking...' : 'Continue';
         btn.innerHTML = '<span id="btnNextText">' + label + '</span><i class="bi bi-arrow-right" id="btnNextIcon"></i>';
         btn.disabled = (n === 0) && !systemCheckPassed;
         btn.onclick = nextStep;
@@ -233,9 +214,8 @@ function showStep(n) {
 
 function nextStep() {
     if (currentStep === 0 && systemCheckPassed) { showStep(1); }
-    else if (currentStep === 1) { verifyLicense(); }
-    else if (currentStep === 2) { testDb(); }
-    else if (currentStep === 3) { runSetup(); }
+    else if (currentStep === 1) { testDb(); }
+    else if (currentStep === 2) { runSetup(); }
 }
 
 function prevStep() {
@@ -278,48 +258,7 @@ async function runChecks() {
     }
 }
 
-// ── Step 1: License Verification ──
-async function verifyLicense() {
-    const email = document.getElementById('licenseEmail').value.trim();
-    const code = document.getElementById('licenseCode').value.trim();
-    const errEl = document.getElementById('licenseError');
-    errEl.style.display = 'none';
-
-    if (!email || !code) {
-        errEl.textContent = 'Please enter both email and purchase code.';
-        errEl.style.display = 'block';
-        return;
-    }
-
-    const btn = document.getElementById('btnNext');
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner"></span> Verifying...';
-
-    try {
-        const resp = await fetch('/install/verify.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, purchase_code: code }),
-        });
-        const data = await resp.json();
-        if (data.success) {
-            licenseVerified = true;
-            licenseData = { email, code, license: data.license };
-            showStep(2);
-        } else {
-            errEl.textContent = data.message || 'Verification failed.';
-            errEl.style.display = 'block';
-        }
-    } catch (e) {
-        errEl.textContent = 'Connection error. Please try again.';
-        errEl.style.display = 'block';
-    }
-
-    btn.disabled = false;
-    btn.innerHTML = '<span id="btnNextText">Continue</span><i class="bi bi-arrow-right" id="btnNextIcon"></i>';
-}
-
-// ── Step 2: Test DB Connection ──
+// ── Step 1: Test DB Connection ──
 async function testDb() {
     const errEl = document.getElementById('dbError');
     errEl.style.display = 'none';
@@ -342,7 +281,7 @@ async function testDb() {
         });
         const data = await resp.json();
         if (data.success) {
-            showStep(3);
+            showStep(2);
         } else {
             errEl.textContent = data.message || 'Database connection failed.';
             errEl.style.display = 'block';
@@ -390,13 +329,11 @@ async function runSetup() {
                 db_name: document.getElementById('dbName').value,
                 admin_user: document.getElementById('adminUser').value,
                 admin_pass: adminPass,
-                license_key: licenseData.code || '',
-                license_email: licenseData.email || '',
             }),
         });
         const data = await resp.json();
         if (data.success) {
-            showStep(4);
+            showStep(3);
         } else {
             errEl.textContent = data.message || 'Installation failed.';
             errEl.style.display = 'block';
