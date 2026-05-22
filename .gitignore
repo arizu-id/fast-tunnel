@@ -2,6 +2,7 @@ tempcodecanyon/
 .git/
 .claude/
 documentation/
-temp_ssh/ssh_*
+temp_ssh/
 config.php
 installed.lock
+*.json.bak
