@@ -134,6 +134,15 @@ plugins/
   php -r "echo bin2hex(random_bytes(32));"
   ```
 
+## Security Credits & Hall of Fame
+
+We would like to express our gratitude to the security researchers and community members who help maintain the security of Fast Tunnel through responsible disclosure:
+
+- **VulDB & Security Research Community** (Submission #990501 / October 2026)
+  - Reported CWE-434 Unrestricted File Upload & Zip-Slip path traversal in plugin installer. (Patched in v1.0.1)
+
+If you discover a security vulnerability, please report it to `ariefzufar@arizu.id`.
+
 ## Contributing
 
 Contributions are welcome. To contribute:

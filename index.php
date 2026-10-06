@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 error_reporting(E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED & ~E_NOTICE & ~E_WARNING);
 ini_set('display_errors','0');
 require_once __DIR__.'/config.php';
@@ -79,6 +79,11 @@ if (is_dir(__DIR__ . '/plugins')) {
                         <li>
                             <button class="dropdown-item d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#aboutDevModal">
                                 <i class="bi bi-person-circle text-muted"></i> <span data-i18n="about_developer">About Developer</span>
+                            </button>
+                        </li>
+                        <li>
+                            <button class="dropdown-item d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#securityCreditsModal">
+                                <i class="bi bi-award text-muted"></i> <span data-i18n="security_credits">Security Credits</span>
                             </button>
                         </li>
                         <li>

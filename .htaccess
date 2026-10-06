@@ -16,6 +16,7 @@
     RewriteRule ^temp_ssh/ - [F,L]
     RewriteRule ^vendor/ - [F,L]
     RewriteRule ^scratch/ - [F,L]
+    RewriteRule ^plugins/.*\.php$ - [F,L]
     RewriteRule \.json$ - [F,L]
     RewriteRule ^(\.git|\.env|\.htaccess) - [F,L]
 

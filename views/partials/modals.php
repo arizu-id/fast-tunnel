@@ -534,10 +534,66 @@
                         </div>
                         <i class="bi bi-arrow-up-right ms-auto text-muted" style="font-size:0.75rem;"></i>
                     </a>
+                    <button class="d-flex align-items-center gap-3 p-3 rounded-3 border-0 w-100 text-start" style="background: #27272a; border: 1px solid #3f3f46; cursor: pointer;" data-bs-toggle="modal" data-bs-target="#securityCreditsModal">
+                        <i class="bi bi-award text-warning"></i>
+                        <div>
+                            <div class="text-white small fw-medium">Security Credits &amp; Hall of Fame</div>
+                            <div class="text-muted" style="font-size:0.8rem;">View security researchers and contributors</div>
+                        </div>
+                        <i class="bi bi-chevron-right ms-auto text-muted" style="font-size:0.75rem;"></i>
+                    </button>
                 </div>
             </div>
             <div class="modal-footer border-secondary" style="background-color: #18181b; padding: 14px 28px;">
                 <span class="text-muted small">Built with &hearts; by Arizu Studio</span>
+                <button type="button" class="btn btn-sm ms-auto" style="background:#27272a; color:#d4d4d8; border:1px solid #3f3f46;" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="securityCreditsModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+        <div class="modal-content border-secondary shadow-lg" style="background-color: #1c1c1f; border-radius: 14px; overflow: hidden;">
+            <div class="modal-header border-secondary" style="background-color: #18181b; padding: 20px 28px;">
+                <div class="d-flex align-items-center gap-3">
+                    <div style="width:40px; height:40px; background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 10px; display:flex; align-items:center; justify-content:center;">
+                        <i class="bi bi-award text-warning" style="font-size:1.25rem;"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-bold mb-0 text-white">Security Credits &amp; Hall of Fame</h5>
+                        <p class="text-muted small mb-0">Acknowledging security researchers and vulnerability reporters</p>
+                    </div>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" style="padding: 28px;">
+                <div class="p-3 mb-4 rounded-3 border border-secondary" style="background: rgba(39, 39, 42, 0.4);">
+                    <p class="text-muted small mb-0">We deeply appreciate security researchers and the open-source community who help keep Fast Tunnel safe by responsibly disclosing security vulnerabilities.</p>
+                </div>
+
+                <h6 class="text-white fw-semibold mb-3"><i class="bi bi-shield-check text-success me-2"></i>Security Contributors &amp; Researchers</h6>
+                <div class="d-flex flex-column gap-3 mb-4">
+                    <div class="p-3 rounded-3 border border-secondary d-flex align-items-start gap-3" style="background: #27272a;">
+                        <div class="rounded-circle bg-warning bg-opacity-10 p-2 text-warning d-flex align-items-center justify-content-center" style="width:42px; height:42px; flex-shrink:0;">
+                            <i class="bi bi-bug fs-5"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <span class="fw-semibold text-white">VulDB &amp; Security Research Community</span>
+                                <span class="badge bg-dark border border-secondary text-warning" style="font-size:0.75rem;">CVE / Submission #990501</span>
+                            </div>
+                            <p class="text-muted small mb-1 mt-1">Reported CWE-434 Unrestricted File Upload &amp; Zip-Slip path traversal vulnerability in plugin installer. Fixed in v1.0.1.</p>
+                            <span class="text-secondary small" style="font-size:0.75rem;"><i class="bi bi-calendar-event me-1"></i>October 2026</span>
+                        </div>
+                    </div>
+                </div>
+
+                <h6 class="text-white fw-semibold mb-2"><i class="bi bi-envelope-paper me-2 text-info"></i>Reporting Security Vulnerabilities</h6>
+                <p class="text-muted small mb-0">If you discover a security vulnerability in Fast Tunnel, please report it responsibly by emailing <a href="mailto:ariefzufar@arizu.id" class="text-info text-decoration-none">ariefzufar@arizu.id</a>. We review all reports promptly and credit researchers upon verification and fix release.</p>
+            </div>
+            <div class="modal-footer border-secondary" style="background-color: #18181b; padding: 14px 28px;">
+                <span class="text-muted small">&copy; 2026 Arizu Studio &mdash; Security Hall of Fame</span>
                 <button type="button" class="btn btn-sm ms-auto" style="background:#27272a; color:#d4d4d8; border:1px solid #3f3f46;" data-bs-dismiss="modal">Close</button>
             </div>
         </div>
