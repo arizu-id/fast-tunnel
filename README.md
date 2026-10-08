@@ -4,8 +4,6 @@
 
 ### *The Ultimate Self-Hosted Web Client for Modern Server Management*
 
-[![CI Pipeline](https://github.com/arizu-id/fast-tunnel/actions/workflows/ci.yml/badge.svg)](https://github.com/arizu-id/fast-tunnel/actions/workflows/ci.yml)
-[![Security Audit](https://github.com/arizu-id/fast-tunnel/actions/workflows/security.yml/badge.svg)](https://github.com/arizu-id/fast-tunnel/actions/workflows/security.yml)
 [![PHP Version](https://img.shields.io/badge/PHP-7.4%20%7C%208.0%20%7C%208.1%20%7C%208.2%20%7C%208.3-777BB4?style=for-the-badge&logo=php&logoColor=white)](https://php.net)
 [![Security](https://img.shields.io/badge/Security-AES--256--GCM-10b981?style=for-the-badge&logo=letsencrypt&logoColor=white)](SECURITY.md)
 [![Release](https://img.shields.io/github/v/release/arizu-id/fast-tunnel?style=for-the-badge&color=3b82f6&logo=github)](https://github.com/arizu-id/fast-tunnel/releases)
