@@ -1,0 +1,88 @@
+name: 🐛 Bug Report
+description: Report a bug, malfunction, or unexpected behavior in Fast Tunnel.
+title: "[Bug]: "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for taking the time to report an issue! Please fill out the form below as completely as possible.
+  - type: input
+    id: version
+    attributes:
+      label: Fast Tunnel Version
+      description: What version of Fast Tunnel are you running? (e.g., v1.0.1, commit hash, or latest main)
+      placeholder: "v1.0.1"
+    validations:
+      required: true
+  - type: dropdown
+    id: environment
+    attributes:
+      label: Environment & Web Server
+      description: What web server and PHP version are you using?
+      options:
+        - Apache (mod_rewrite) + PHP 8.x
+        - Apache (mod_rewrite) + PHP 7.4
+        - Nginx + PHP-FPM 8.x
+        - Nginx + PHP-FPM 7.4
+        - Docker Official Container
+        - Other (specify in description)
+    validations:
+      required: true
+  - type: dropdown
+    id: affected-module
+    attributes:
+      label: Affected Module
+      options:
+        - SSH Web Terminal (xterm.js / SSE)
+        - FTP / File Manager (Monaco Editor)
+        - MySQL Database Manager
+        - Session Management & Encryption
+        - Plugin System
+        - Web Installer / Setup Wizard
+        - Authentication & Login
+        - General UI / Responsiveness
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: A clear and concise description of what the bug is.
+      placeholder: "When opening the SSH terminal, the SSE connection drops after 30 seconds..."
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to Reproduce
+      description: Exact steps to reproduce the behavior.
+      placeholder: |
+        1. Go to 'SSH Sessions'
+        2. Click on 'Connect'
+        3. Type command 'top'
+        4. See error...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What you expected to happen.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or Console Output
+      description: Paste any browser DevTools console errors or PHP error logs here.
+      render: shell
+  - type: checkboxes
+    id: confirmations
+    attributes:
+      label: Checklist
+      options:
+        - label: I have verified this is not a duplicate issue by searching existing issues.
+          required: true
+        - label: I have verified that no sensitive credentials (passwords, private keys, API secrets) are included in this report.
+          required: true

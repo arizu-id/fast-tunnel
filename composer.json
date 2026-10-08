@@ -1,5 +1,51 @@
 {
+    "name": "arizu-id/fast-tunnel",
+    "description": "The Ultimate Self-Hosted Web Client for Server Management (FTP/SFTP, MySQL, and SSH Terminal in a single dashboard).",
+    "type": "project",
+    "license": "MIT",
+    "keywords": [
+        "fast-tunnel",
+        "server-management",
+        "web-terminal",
+        "ssh-web-client",
+        "ftp-client",
+        "mysql-client",
+        "sysadmin",
+        "devops",
+        "php",
+        "xtermjs",
+        "monaco-editor"
+    ],
+    "homepage": "https://github.com/arizu-id/fast-tunnel",
+    "authors": [
+        {
+            "name": "Arizu Studio",
+            "email": "ariefzufar@arizu.id",
+            "homepage": "https://arizu.id",
+            "role": "Developer & Maintainer"
+        }
+    ],
+    "support": {
+        "issues": "https://github.com/arizu-id/fast-tunnel/issues",
+        "source": "https://github.com/arizu-id/fast-tunnel"
+    },
     "require": {
-        "phpseclib/phpseclib": "3.0"
+        "php": ">=7.4.0",
+        "ext-pdo": "*",
+        "ext-pdo_mysql": "*",
+        "ext-openssl": "*",
+        "ext-json": "*",
+        "ext-curl": "*",
+        "ext-zip": "*",
+        "phpseclib/phpseclib": "^3.0"
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "preferred-install": "dist",
+        "sort-packages": true,
+        "allow-plugins": {}
+    },
+    "scripts": {
+        "lint": "find . -name '*.php' ! -path './vendor/*' -exec php -l {} \\;"
     }
 }

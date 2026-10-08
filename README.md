@@ -2,135 +2,200 @@
 
 # 🌐 Fast Tunnel
 
-### *The Ultimate Self-Hosted Web Client for Server Management*
+### *The Ultimate Self-Hosted Web Client for Modern Server Management*
 
-A sleek, responsive, and secure browser-based dashboard consolidating **FileZilla**, **phpMyAdmin**, and **PuTTY** into a single PHP application — zero desktop software required.
-
-[![PHP Version](https://img.shields.io/badge/PHP-7.4%20%7C%208.x-777BB4?style=for-the-badge&logo=php&logoColor=white)](https://php.net)
-[![Encryption](https://img.shields.io/badge/Security-AES--256--GCM-10b981?style=for-the-badge&logo=letsencrypt&logoColor=white)](https://github.com/arizu-id/fast-tunnel)
-[![Version](https://img.shields.io/badge/Release-v1.0.1-3b82f6?style=for-the-badge&logo=github&logoColor=white)](https://github.com/arizu-id/fast-tunnel/releases)
-[![UI Framework](https://img.shields.io/badge/Bootstrap-5.3-7952B3?style=for-the-badge&logo=bootstrap&logoColor=white)](https://getbootstrap.com)
+[![CI Pipeline](https://github.com/arizu-id/fast-tunnel/actions/workflows/ci.yml/badge.svg)](https://github.com/arizu-id/fast-tunnel/actions/workflows/ci.yml)
+[![Security Audit](https://github.com/arizu-id/fast-tunnel/actions/workflows/security.yml/badge.svg)](https://github.com/arizu-id/fast-tunnel/actions/workflows/security.yml)
+[![PHP Version](https://img.shields.io/badge/PHP-7.4%20%7C%208.0%20%7C%208.1%20%7C%208.2%20%7C%208.3-777BB4?style=for-the-badge&logo=php&logoColor=white)](https://php.net)
+[![Security](https://img.shields.io/badge/Security-AES--256--GCM-10b981?style=for-the-badge&logo=letsencrypt&logoColor=white)](SECURITY.md)
+[![Release](https://img.shields.io/github/v/release/arizu-id/fast-tunnel?style=for-the-badge&color=3b82f6&logo=github)](https://github.com/arizu-id/fast-tunnel/releases)
+[![Docker Support](https://img.shields.io/badge/Docker-Ready-2496ED?style=for-the-badge&logo=docker&logoColor=white)](docker-compose.yml)
 [![License](https://img.shields.io/badge/License-MIT-f59e0b?style=for-the-badge)](LICENSE)
 
-[Key Features](#-key-features) • [Architecture](#-architecture) • [Security Matrix](#-security--encryption-architecture) • [Quick Start](#-quick-start) • [Plugins](#-plugin-system) • [Security Hall of Fame](#-security-credits--hall-of-fame)
+<p align="center">
+  A sleek, responsive, and secure browser-based workspace consolidating <b>FileZilla</b>, <b>phpMyAdmin</b>, and <b>PuTTY</b> into a single lightweight PHP application — zero desktop software required.
+</p>
+
+<p align="center">
+  <a href="#-key-features"><b>Explore Features</b></a> •
+  <a href="#-quick-start"><b>Quick Start</b></a> •
+  <a href="#-architecture"><b>Architecture</b></a> •
+  <a href="#-security--encryption"><b>Security</b></a> •
+  <a href="#-plugin-system"><b>Plugins</b></a> •
+  <a href="#-troubleshooting"><b>Troubleshooting</b></a> •
+  <a href="#-contributing"><b>Contributing</b></a>
+</p>
 
 ---
 
 </div>
 
-## 🌟 Overview
+## 🌟 Why Fast Tunnel?
 
-**Fast Tunnel** replaces desktop software dependencies with a portable, browser-accessible server workspace. Whether you are managing web hosts, remote databases, or SSH terminals from a mobile device or a restricted workstation, Fast Tunnel provides instant, encrypted access directly from any modern web browser.
+Traditional server administration relies on juggling multiple heavy desktop clients (PuTTY for SSH, FileZilla for FTP, phpMyAdmin / DBeaver for databases). 
 
-Designed for **System Administrators, Web Developers, and DevOps Teams** who demand desktop-grade functionality with web mobility.
+**Fast Tunnel** replaces desktop dependencies with a portable, browser-accessible server workspace. Whether you are managing web hosts from a tablet, repairing a database on a restricted corporate workstation, or running SSH commands on the go, Fast Tunnel delivers desktop-grade functionality with web mobility.
+
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│                        🌐 FAST TUNNEL DASHBOARD                        │
+├──────────────────┬──────────────────────┬──────────────────────────────┤
+│ 📁 FTP MANAGER   │ 🗄️ MYSQL DATABASE    │ 💻 SSH WEB TERMINAL          │
+│ • Monaco Editor  │ • Visual Data Grid   │ • xterm.js PTY Engine        │
+│ • Drag & Drop    │ • SQL Console Runner │ • Real-time SSE Stream       │
+│ • Context Menu   │ • Schema Inspector   │ • ANSI True-Color Support    │
+├──────────────────┴──────────────────────┴──────────────────────────────┤
+│ 🔐 Zero-Plaintext Credential Storage (AES-256-GCM Vault)               │
+│ 🧩 Extensible Modular Plugin Engine (ZIP Drag & Drop Installer)        │
+└────────────────────────────────────────────────────────────────────────┘
+```
 
 ---
 
-## ⚡ Key Features
+## ⚡ Key Modules & Capabilities
 
-| Module | Features & Capabilities | Engine / Tech |
+| Module | Features & Highlights | Technology Stack |
 |---|---|---|
-| 📁 **FTP File Manager** | • Drag-and-drop file/folder uploads<br>• Right-click context menu (Rename, Delete, Create, Download)<br>• **Monaco Code Editor** integration (VS Code engine) with `Ctrl+S` save shortcut<br>• Recursive directory traversal & search | Monaco Editor, jQuery ContextMenu |
-| 🗄️ **MySQL Database Client** | • Visual Data Grid with pagination<br>• Inline row update and bulk row deletion<br>• SQL Console Runner for custom queries<br>• Database & Table Structure inspector (Add/Edit/Drop columns, indexes) | PDO MySQL / Fallback MySQLi |
-| 💻 **SSH Web Terminal** | • Interactive PTY terminal emulator with ANSI color support<br>• Real-time output streaming via **Server-Sent Events (SSE)**<br>• Adaptive polling for low CPU idle consumption<br>• Dynamic terminal window resizing (`cols` x `rows`) | `xterm.js`, `phpseclib3` PTY Daemon |
-| 🔐 **Session Management** | • Store multiple FTP, SSH, and MySQL connections securely<br>• Portable encrypted JSON import/export<br>• Client-side password protection for exported session backups | OpenSSL `AES-256-GCM` |
-| 🧩 **Modular Plugin Engine** | • Drag-and-drop ZIP plugin installer<br>• Auto-discovery of frontend (`.js`, `.css`) and backend (`plugin.php`) hooks<br>• Pre-built plugins: *Ping Monitor, Multi-Language, Multi-Theme, Proxy* | Fast Tunnel Plugin Architecture |
+| 📁 **FTP File Manager** | • Drag-and-drop file & folder upload<br>• Right-click context actions (*Rename, Delete, New File/Folder, Download*)<br>• Embedded **Monaco Code Editor** (VS Code engine) with `Ctrl+S` instant save<br>• Fast directory tree traversal & search | Monaco Editor, jQuery ContextMenu, PHP Streams |
+| 🗄️ **MySQL Client** | • Visual Data Grid with pagination and limit offsets<br>• Inline row updating and batch row deletion<br>• Raw SQL query runner with syntax highlighting<br>• Table schema designer (Add/Edit/Drop columns, indexes) | PDO MySQL / MySQLi Fallback |
+| 💻 **SSH Web Terminal** | • Full interactive PTY terminal emulator with ANSI color support<br>• High-performance real-time streaming via **Server-Sent Events (SSE)**<br>• Dynamic window resizing (`cols` × `rows`)<br>• Low CPU idle consumption via adaptive polling | `xterm.js`, `phpseclib3` PTY Daemon |
+| 🔐 **Session Vault** | • Securely store multiple FTP, SSH, and MySQL profiles<br>• Encrypted JSON profile export and import with PBKDF2 passphrases<br>• One-click instant connection launch | OpenSSL `AES-256-GCM`, PBKDF2 |
+| 🧩 **Plugin Engine** | • Drag-and-drop ZIP package installer with auto-discovery<br>• Sandbox execution preventing direct webshell execution<br>• Pre-built plugin hooks for UI themes, ping latency, and proxy tools | Modular PHP / JS Hooks Architecture |
 
 ---
 
 ## 🏗️ Architecture
 
-Fast Tunnel employs a lightweight **Single-Page Application (SPA)** frontend coupled with a **Centralized API Gateway** backend:
+Fast Tunnel employs a lightweight **Single-Page Application (SPA)** architecture coupled with a **Centralized API Gateway**:
 
 ```mermaid
-graph TD
-    A[Browser SPA Client] -->|Fetch / AJAX + CSRF Token| B(api.php Gateway)
-    B --> C{Action Router}
-    C -->|auth_*| D[Auth & Encryption Service]
-    C -->|sessions_*| E[Encrypted SessionStore]
-    C -->|ftp_*| F[FTP Adapter]
-    C -->|mysql_*| G[MySQL Client Adapter]
-    C -->|ssh_*| H[SSH PTY Daemon Controller]
-    
-    H -->|IPC Files input/output| I[SshStream.php Background Process]
-    I -->|phpseclib3 PTY| J[Remote SSH Server]
-    F -->|FTP Protocol| K[Remote FTP Server]
-    G -->|PDO / MySQLi| L[Remote MySQL Database]
-    
-    E -->|AES-256-GCM Encrypted| M[(Local App Database)]
+flowchart TD
+    subgraph Browser ["Web Browser Client"]
+        A[Fast Tunnel SPA UI]
+        B[xterm.js Terminal]
+        C[Monaco Code Editor]
+    end
+
+    subgraph Server ["Fast Tunnel Gateway (api.php)"]
+        D{Action Router}
+        E[Auth & CSRF Guard]
+        F[AES-256-GCM Session Vault]
+        G[FTP Adapter]
+        H[MySQL Client Adapter]
+        I[SSH PTY Daemon Controller]
+    end
+
+    subgraph Targets ["Remote Infrastructure"]
+        J[(Local App DB)]
+        K[Remote FTP / SFTP]
+        L[(Remote MySQL DB)]
+        M[Remote SSH Server]
+    end
+
+    A -->|Fetch / AJAX + CSRF| E
+    B -->|Server-Sent Events| I
+    C -->|Save File Buffer| G
+
+    E --> D
+    D --> F <--> J
+    D --> G <--> K
+    D --> H <--> L
+    D --> I <-->|IPC Pipes + phpseclib3| M
 ```
+
+> 📖 *For a deep dive into streaming mechanics and encryption flows, read [`ARCHITECTURE.md`](ARCHITECTURE.md).*
 
 ---
 
-## 🛡️ Security & Encryption Architecture
+## 🛡️ Security & Encryption Matrix
 
-Security is central to Fast Tunnel's design. Credentials and session tokens are protected across all execution states:
+Security is the core foundation of Fast Tunnel's design:
 
-- 🔒 **Zero-Plaintext Credentials Storage**: All passwords, SSH keys, and host details are encrypted using **AES-256-GCM** before database insertion. Kredensial are decrypted only *in-memory* during active API operations.
-- 🔑 **Unique Encryption Key**: Each installation generates a 256-bit cryptographically secure random key (`ENCRYPTION_KEY`) in `config.php`.
-- 🛡️ **CSRF Protection**: All state-changing `POST` requests require a valid `X-CSRF-Token` header attached to user sessions.
-- ⏱️ **Brute-Force Rate Limiting**: Authentication attempts are rate-limited by IP address (maximum 5 failed attempts per 15-minute window).
-- 🧱 **Zip-Slip & CWE-434 Defense**: Plugin ZIP uploads perform pre-extraction path validation, `realpath` canonicalization, and strict extension filtering (blocking `.php` webshells, `.htaccess`, `.env`, `.phar`, `.exe`, etc.).
-- 🚫 **Web Execution Lockdown**: Direct HTTP access to PHP scripts inside `plugins/`, `backend/`, `vendor/`, `temp_ssh/`, and `scratch/` is blocked via `.htaccess` rules (`RewriteRule ^plugins/.*\.php$ - [F,L]`).
+- 🔒 **Zero-Plaintext at Rest**: Remote passwords, hostnames, and private keys are encrypted using **AES-256-GCM** before database storage. Credentials are only decrypted *in-memory* during active operations.
+- 🔑 **Unique Cryptographic Keys**: Every installation generates a cryptographically random 256-bit key (`ENCRYPTION_KEY`).
+- 🛡️ **CSRF Defense**: All state-changing requests enforce strict `X-CSRF-Token` headers.
+- ⏱️ **Brute-Force Rate Limiting**: Authentication endpoints enforce an automated sliding-window rate limit by IP address.
+- 🧱 **Zip-Slip & CWE-434 Hardening**: Plugin ZIP uploads perform canonical `realpath` validation and strict file extension filtering.
+- 🚫 **Web Execution Lockdown**: Direct HTTP access to PHP files in `plugins/`, `backend/`, `vendor/`, and `temp_ssh/` is prohibited via `.htaccess` and Nginx rules.
+
+> 🔒 *Read our full security policy and disclosure guidelines in [`SECURITY.md`](SECURITY.md).*
 
 ---
 
 ## 🚀 Quick Start
 
-### 📋 Prerequisites
+### Option 1: Docker Compose (Fastest & Recommended)
 
-- **PHP**: 7.4 or 8.x (PHP 8.1+ recommended)
-- **Database**: MySQL 5.7+ or MariaDB 10.3+
-- **PHP Extensions**: `pdo_mysql`, `openssl`, `curl`, `zip`
-- **Web Server**: Apache (`mod_rewrite` enabled) or Nginx
+Get up and running in 30 seconds with zero local dependencies:
 
-### 📥 Installation Steps
+```bash
+# 1. Clone repository
+git clone https://github.com/arizu-id/fast-tunnel.git
+cd fast-tunnel
 
-1. **Clone the Repository**:
-   ```bash
-   git clone https://github.com/arizu-id/fast-tunnel.git
-   cd fast-tunnel
-   ```
+# 2. Launch container stack
+docker-compose up -d --build
 
-2. **Install PHP Dependencies**:
-   ```bash
-   composer install
-   ```
+# 3. Open Web Installer
+# Navigate to: http://localhost:8080/install/
+```
 
-3. **Deploy to Web Server**:
-   Place the `fast-tunnel` directory inside your web server document root (e.g., `/var/www/html/` or `htdocs/`).
+---
 
-4. **Run Guided Web Installer**:
-   Open your browser and navigate to:
-   ```http
-   http://your-server-ip/fast-tunnel/install/
-   ```
-   Follow the 3-step installer wizard:
-   - **Step 1**: Environment & PHP Extensions Check
-   - **Step 2**: Database Connection Configuration
-   - **Step 3**: Admin Account & Encryption Key Generation
+### Option 2: Apache / PHP-FPM Web Server
 
-5. **Security Cleanup**:
-   After completing installation, restrict or remove access to the `install/` folder.
+```bash
+# 1. Clone the repository into your web root
+cd /var/www/html
+git clone https://github.com/arizu-id/fast-tunnel.git
+cd fast-tunnel
+
+# 2. Install PHP dependencies
+composer install --optimize-autoloader
+
+# 3. Set proper directory permissions
+chmod -R 775 temp_ssh/ plugins/
+chown -R www-data:www-data temp_ssh/ plugins/
+
+# 4. Open Guided Web Installer
+# Navigate to: http://your-server-ip/fast-tunnel/install/
+```
+
+Follow the 3-step installer wizard:
+1. **Step 1**: System requirements & PHP extensions check (`pdo_mysql`, `openssl`, `curl`, `zip`).
+2. **Step 2**: MySQL database configuration.
+3. **Step 3**: Admin user account creation & automated encryption key generation.
+
+---
+
+### Option 3: Nginx + PHP-FPM
+
+For Nginx, copy and customize our production-tested configuration template:
+
+```bash
+sudo cp nginx.sample.conf /etc/nginx/sites-available/fast-tunnel
+sudo ln -s /etc/nginx/sites-available/fast-tunnel /etc/nginx/sites-enabled/
+sudo systemctl reload nginx
+```
+
+> ⚠️ **Nginx SSE Tip**: Ensure `fastcgi_buffering off;` and `proxy_buffering off;` are enabled so terminal Server-Sent Events stream without buffering delay.
 
 ---
 
 ## 🧩 Plugin System
 
-Fast Tunnel features an extensible plugin architecture. Drop any plugin directory into `plugins/` or upload a ZIP package via the **Plugins Manager UI**.
-
-### Plugin Directory Structure
+Fast Tunnel features a modular plugin architecture. Build your own plugins or drop community packages into `plugins/`.
 
 ```
 plugins/
 └── your_plugin_slug/
-    ├── info.json       # Required: Plugin metadata (name, slug, version, author)
-    ├── plugin.js       # Optional: Frontend JavaScript module
-    ├── plugin.css      # Optional: Styling definitions
-    └── plugin.php      # Optional: Backend PHP hooks & logic
+    ├── info.json       # Required: Plugin metadata
+    ├── plugin.js       # Optional: Frontend JavaScript hooks
+    ├── plugin.css      # Optional: Frontend styling
+    └── plugin.php      # Optional: Backend PHP API handlers
 ```
 
-### Example `info.json`
+### Sample `info.json`
 ```json
 {
   "name": "Server Latency Monitor",
@@ -145,19 +210,38 @@ plugins/
 
 ## 🎖️ Security Credits & Hall of Fame
 
-We extend our sincere thanks to the security research community for helping maintain the safety and integrity of Fast Tunnel through responsible disclosure:
+We extend our sincere thanks to the security research community for helping protect Fast Tunnel users through responsible disclosure:
 
 | Researcher / Reporter | Identification | Vulnerability Reported | Status |
 |---|---|---|---|
-| **VulDB & Security Research Community** | CVE / Submission #990501 | CWE-434 Unrestricted File Upload & Zip-Slip path traversal in plugin installer | 🟢 Patched (v1.0.1) |
+| **VulDB & Research Community** | Submission #990501 | CWE-434 Unrestricted File Upload & Zip-Slip path traversal in plugin installer | 🟢 Patched (v1.0.1) |
 
-> ✉️ **Reporting Vulnerabilities**: If you discover a security issue, please report it responsibly by contacting **`ariefzufar@arizu.id`**.
+> ✉️ *Found a security issue? Please review [`SECURITY.md`](SECURITY.md) and report confidentially to **`ariefzufar@arizu.id`**.*
+
+---
+
+## 🗺️ Roadmap
+
+- [ ] **v1.1**: Official Docker Hub prebuilt image, SQLite zero-config mode, 2FA/TOTP authenticator.
+- [ ] **v1.2**: Multi-tab terminal sessions, database SQL export/import tools, cloud archive utilities.
+- [ ] **v2.0**: Multi-user Role-Based Access Control (RBAC), browser-based RDP/VNC remote desktop.
+
+Check out the full development timeline in [`ROADMAP.md`](ROADMAP.md).
+
+---
+
+## 🤝 Contributing
+
+Contributions, issues, and feature requests are very welcome!
+- Check out [`CONTRIBUTING.md`](CONTRIBUTING.md) to get started with our development workflow.
+- Please adhere to our [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md).
+- To report a bug or request a feature, use our [GitHub Issue Templates](https://github.com/arizu-id/fast-tunnel/issues/new/choose).
 
 ---
 
 ## 📄 License
 
-This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for full details. Free for personal and commercial use.
+This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details. Free for personal and commercial use.
 
 ---
 
@@ -165,6 +249,6 @@ This project is licensed under the **MIT License** — see the [LICENSE](LICENSE
 
 Crafted with ❤️ by **[Arizu Studio](https://arizu.id)**
 
-*Star ⭐ this repository if you find Fast Tunnel useful!*
+⭐ **Star this repository if you find Fast Tunnel useful!** ⭐
 
 </div>

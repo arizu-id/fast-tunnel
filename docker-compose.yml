@@ -1,0 +1,44 @@
+version: '3.8'
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fast-tunnel-app
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    environment:
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_NAME=fast_tunnel
+      - DB_USER=fasttunnel
+      - DB_PASS=secretpassword
+    depends_on:
+      - db
+    volumes:
+      - ./:/var/www/html
+      - /var/www/html/vendor
+    networks:
+      - fast-tunnel-net
+  db:
+    image: mysql:8.0
+    container_name: fast-tunnel-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: rootsecretpassword
+      MYSQL_DATABASE: fast_tunnel
+      MYSQL_USER: fasttunnel
+      MYSQL_PASSWORD: secretpassword
+    ports:
+      - "3307:3306"
+    volumes:
+      - ft_db_data:/var/lib/mysql
+    networks:
+      - fast-tunnel-net
+volumes:
+  ft_db_data:
+    driver: local
+networks:
+  fast-tunnel-net:
+    driver: bridge

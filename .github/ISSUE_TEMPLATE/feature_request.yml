@@ -1,0 +1,50 @@
+name: 💡 Feature Request / Enhancement
+description: Suggest an idea or new capability for Fast Tunnel.
+title: "[Feature]: "
+labels: ["enhancement", "proposal"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for suggesting an improvement or new feature for Fast Tunnel!
+  - type: textarea
+    id: feature-description
+    attributes:
+      label: Is your feature request related to a problem?
+      description: A clear description of what the problem is or what workflow you are trying to achieve.
+      placeholder: "I'm always frustrated when I need to transfer files between two remote servers directly..."
+    validations:
+      required: true
+  - type: textarea
+    id: proposed-solution
+    attributes:
+      label: Proposed Solution / Desired Feature
+      description: Describe what you would like Fast Tunnel to do.
+      placeholder: "Add support for direct server-to-server FXP or cloud storage mounts (S3/WebDAV)..."
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Describe any alternative solutions or workarounds you've considered.
+  - type: dropdown
+    id: target-module
+    attributes:
+      label: Relevant Module
+      options:
+        - SSH Web Terminal
+        - FTP / SFTP File Manager
+        - MySQL Database Client
+        - Plugin Ecosystem
+        - Security & Access Control (e.g. 2FA, OAuth)
+        - Mobile / Responsive UI
+        - Other
+    validations:
+      required: true
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Contribution
+      options:
+        - label: I am willing to submit a Pull Request implementing this feature.

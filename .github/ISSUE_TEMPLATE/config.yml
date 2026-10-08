@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 Community Discussions & Questions
+    url: https://github.com/arizu-id/fast-tunnel/discussions
+    about: Ask questions, share ideas, and discuss configurations with other Fast Tunnel users.
+  - name: 🔒 Security Advisories & Reporting
+    url: https://github.com/arizu-id/fast-tunnel/security/advisories
+    about: Review published security advisories and vulnerability bulletins.
