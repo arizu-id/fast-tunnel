@@ -9,19 +9,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+- Table names are quoted in `MysqlClient::getTableData/getTableColumns` (they were interpolated unescaped).
+- Removed the unused, guessable `CSRF_SECRET` (`md5(__DIR__)`) from `config.sample.php`.
+- Plugin ZIP uploads are capped at 1000 files / 50 MB uncompressed.
+- `DROP DATABASE` requires typing the database name (server-side `confirm_name` check as well).
+- The SSH daemon deletes its session file (encrypted password) and keystroke buffer as soon as the shell ends.
+
+### Changed
+- MySQL connections are persistent (`FT_MYSQL_PERSISTENT=false` to disable); errors are logged to the server log and unexpected failures return a JSON 500 instead of a blank page.
+- Deleting a folder in the file manager is now recursive (the confirmation says so).
+- One request feeds both the DB sidebar and the Structure tab; JS/CSS cache-busting uses file modification times and revalidates with ETags.
+- `ssh_connect` verifies the new credentials *before* stopping the running terminal.
+
 ### Fixed
+- FTP: directory listings from servers without MLSD (e.g. vsftpd) produced corrupted names (`"09 09:28 folder"`); listing a missing directory now errors instead of returning an empty list.
+- SSH terminal: the daemon never noticed when the remote shell exited (`exit`) and kept running for up to an hour.
 - Installer: `db_name_enc TEXT DEFAULT ''` failed on MySQL < 8.0.13 / strict MariaDB (`1101 BLOB, TEXT ... can't have a default value`); it is now `DEFAULT NULL`.
 - MySQL client: delete rows, drop table, truncate, drop column(s) and edit row/column buttons had no JavaScript handlers and did nothing. They are now wired up, along with the Structure tab (`selectDatabase`).
 - Added the missing **Drop Database** action (`mysql_drop_database`; system schemas are protected).
 - Table/column identifiers may now contain characters such as `-` (only backticks and control characters are rejected).
 
 ### Added
+- **Two-factor authentication** (TOTP) with QR setup, replay protection, encrypted secret and recovery codes.
+- **Audit log** (table `audit_log`, viewer in the *More* menu).
+- **SFTP** sessions (`SftpClient`, password login; "/" is the login directory).
+- **File manager**: upload queue with progress/cancel/retry and folder drops, Ctrl/Shift multi-select with bulk delete/move/ZIP, folder ZIP download, recursive folder delete, name search.
+- **MySQL**: CSV/SQL export, `.sql`/`.csv` import (CSV in one transaction), create database/table, Format SQL, `Ctrl+Enter`, query history, sortable grid, composite primary keys.
+- Schema `Migrations` runner so existing installs upgrade automatically (SFTP enum, audit table, 2FA columns).
+- Test suites (PHP unit, API integration against real MySQL/MariaDB/FTP/SFTP/SSH, Playwright) and GitHub Actions CI.
 - Per-element loading animation (`modules/loading.js`) for FTP create/rename/move/delete/upload, MySQL actions, session CRUD/import/export/connect and plugin delete. Confirm/prompt modals keep their button spinning until the request finishes.
 
 ### Planned
-- Two-Factor Authentication (TOTP / Google Authenticator).
 - Multi-user Role-Based Access Control (Admin vs Operator roles).
-- SFTP and AWS S3 storage adapters.
+- SSH key authentication; AWS S3 storage adapter.
 - Web-based RDP and VNC remote desktop client modules.
 
 ---

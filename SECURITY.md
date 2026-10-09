@@ -29,8 +29,13 @@ Fast Tunnel is built with multiple defense-in-depth safeguards:
 3. **Brute Force Protection**:
    - Authentication endpoints enforce sliding-window IP rate limiting (5 failed attempts per 15 minutes).
 
-4. **Malicious File & Web Shell Lockdown**:
+4. **Two-Factor Authentication & Audit Trail**:
+   - Optional TOTP (RFC 6238) for the admin login; secrets are stored AES-256-GCM encrypted, each code is accepted once, and recovery codes are stored only as SHA-256 hashes. Wrong 2FA codes count toward the login rate limit.
+   - Sensitive actions (logins and failures, SQL DDL/DML from the console, DROP/TRUNCATE/DELETE, exports/imports, file deletions, plugin install/delete, credential changes) are written to the `audit_log` table.
+
+5. **Malicious File & Web Shell Lockdown**:
    - Web server rules (`.htaccess` and `nginx.sample.conf`) block direct execution of `.php` scripts in storage, scratch, and plugin subdirectories (`plugins/`, `backend/`, `temp_ssh/`, `scratch/`).
+   - Plugin archives are additionally limited to 1000 entries / 50 MB uncompressed (zip-bomb guard).
    - Plugin ZIP extractions validate target paths using canonical `realpath` checks and strict file extension allowlists to defend against Zip-Slip and arbitrary file upload attacks (CWE-434).
 
 ---

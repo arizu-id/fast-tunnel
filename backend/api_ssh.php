@@ -93,6 +93,9 @@ $user=$data['user']??'';
 $password=$data['password']??'';
 $cols=(int)($data['cols']??80);
 $rows=(int)($data['rows']??24);
+// Verify the new credentials first so a failed attempt doesn't tear down a terminal that is still running
+$testSsh=new \App\SshClient($host,$port);
+$testSsh->connect($user,$password);
 $oldStream=$_SESSION['ssh_stream']??null;
 if($oldStream){
 @file_put_contents($oldStream['kill_file'],'1');
@@ -107,8 +110,6 @@ usleep(300000);
 $tmpDir=__DIR__.'/../temp_ssh';
 if(!is_dir($tmpDir)){@mkdir($tmpDir,0777,true);}
 reapSshTempFiles($tmpDir);
-$testSsh=new \App\SshClient($host,$port);
-$testSsh->connect($user,$password);
 $sid=uniqid('ssh_',true);
 $sessionFile=$tmpDir.'/'.$sid.'.json';
 $inputFile=$tmpDir.'/'.$sid.'_input.bin';

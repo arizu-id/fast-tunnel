@@ -135,3 +135,22 @@ plugins/
 
 - **Auto-Discovery**: `api_plugins.php` discovers active plugins and automatically registers their frontend assets in `views/layout.php`.
 - **Sandbox Security**: Execution of direct `.php` files inside `plugins/` over HTTP is strictly prohibited by `.htaccess` and Nginx. Backend hooks are only invoked internally by the verified `api.php` controller.
+
+
+---
+
+## 🧱 Backend Components (added in 1.1)
+
+| File | Responsibility |
+|---|---|
+| `backend/Migrations.php` | Idempotent schema upgrades, versioned in `app_meta`, run once per login session (also before login so old installs keep working). |
+| `backend/Audit.php` | Append-only `audit_log`; `auditSuccessfulAction()` in `api_helpers.php` maps API actions to entries. |
+| `backend/Totp.php` | RFC 6238 TOTP, base32, recovery-code generation/hashing. Login flow lives in `Auth::login()` (`ok` / `invalid` / `totp_required` / `totp_invalid`). |
+| `backend/SftpClient.php` | SFTP adapter with the same API as `FtpClient`; paths are virtual (`/` = login dir, `..` clamped). |
+| `backend/RemoteFsTools.php` | Trait shared by both file clients: recursive delete, `mkdir -p`, search, ZIP staging. |
+| `backend/SqlTools.php` | SQL script splitter for import and dump writer for export. |
+| `assets/js/modules/loading.js` | Per-element loading states (`setLoading`, `withLoading`, modal buttons that keep spinning until a promise settles). |
+| `assets/js/modules/file-tools.js` | Upload queue, multi-select, ZIP, search. |
+| `assets/js/modules/db-tools.js` | SQL formatter, history, export/import helpers. |
+
+Tests: `tests/php` (unit), `tests/integration` (API vs. real servers, run through `php -S` + `router.php`), `tests/e2e` (Playwright; `fullstack.e2e.mjs` drives the real app).

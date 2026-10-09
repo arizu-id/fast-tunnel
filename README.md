@@ -54,10 +54,10 @@ Traditional server administration relies on juggling multiple heavy desktop clie
 
 | Module | Features & Highlights | Technology Stack |
 |---|---|---|
-| 📁 **FTP File Manager** | • Drag-and-drop file & folder upload<br>• Right-click context actions (*Rename, Delete, New File/Folder, Download*)<br>• Embedded **Monaco Code Editor** (VS Code engine) with `Ctrl+S` instant save<br>• Fast directory tree traversal & search | Monaco Editor, jQuery ContextMenu, PHP Streams |
-| 🗄️ **MySQL Client** | • Visual Data Grid with pagination and limit offsets<br>• Inline row updating and batch row deletion<br>• Raw SQL query runner with syntax highlighting<br>• Table schema designer (Add/Edit/Drop columns, indexes) | PDO MySQL / MySQLi Fallback |
+| 📁 **FTP / SFTP File Manager** | • FTP, FTPS-less FTP via proxy, and **SFTP** (password login) in one tree<br>• Upload **queue** with per-file progress, cancel/retry, folder drag-and-drop<br>• `Ctrl/Cmd+click` and `Shift+click` multi-select → bulk **delete, move, ZIP download**<br>• Download any folder as ZIP, recursive folder delete, name **search** across the tree<br>• Right-click actions (*Rename, Delete, New File/Folder, Download as ZIP*)<br>• Embedded **Monaco Code Editor** (VS Code engine) with `Ctrl+S` instant save | Monaco Editor, jQuery ContextMenu, PHP FTP ext, phpseclib3 SFTP |
+| 🗄️ **MySQL Client** | • Data grid with pagination and **click-to-sort** columns<br>• Inline row edit/delete (single *and* composite primary keys)<br>• SQL console with **Format SQL**, `Ctrl+Enter` and **query history**<br>• Create/drop **databases** and **tables**, add/edit/drop columns, truncate<br>• **Export** table (CSV) or table/database (SQL dump) and **import** `.sql` / `.csv` files | PDO MySQL (persistent connections) / MySQLi fallback |
 | 💻 **SSH Web Terminal** | • Full interactive PTY terminal emulator with ANSI color support<br>• High-performance real-time streaming via **Server-Sent Events (SSE)**<br>• Dynamic window resizing (`cols` × `rows`)<br>• Low CPU idle consumption via adaptive polling | `xterm.js`, `phpseclib3` PTY Daemon |
-| 🔐 **Session Vault** | • Securely store multiple FTP, SSH, and MySQL profiles<br>• Encrypted JSON profile export and import with PBKDF2 passphrases<br>• One-click instant connection launch | OpenSSL `AES-256-GCM`, PBKDF2 |
+| 🔐 **Session Vault** | • Securely store multiple FTP, SFTP, SSH, and MySQL profiles<br>• Encrypted JSON profile export and import with PBKDF2 passphrases<br>• One-click instant connection launch | OpenSSL `AES-256-GCM`, PBKDF2 |
 | 🧩 **Plugin Engine** | • Drag-and-drop ZIP package installer with auto-discovery<br>• Sandbox execution preventing direct webshell execution<br>• Pre-built plugin hooks for UI themes, ping latency, and proxy tools | Modular PHP / JS Hooks Architecture |
 
 ---
@@ -114,6 +114,9 @@ Security is the core foundation of Fast Tunnel's design:
 - 🛡️ **CSRF Defense**: All state-changing requests enforce strict `X-CSRF-Token` headers.
 - ⏱️ **Brute-Force Rate Limiting**: Authentication endpoints enforce an automated sliding-window rate limit by IP address.
 - 🧱 **Zip-Slip & CWE-434 Hardening**: Plugin ZIP uploads perform canonical `realpath` validation and strict file extension filtering.
+- 📱 **Two-Factor Authentication (TOTP)**: Optional authenticator-app codes (RFC 6238) with replay protection, encrypted secret and one-time recovery codes.
+- 📝 **Audit Log**: Logins (incl. failures), exports/imports, DROP/TRUNCATE/DELETE, file deletions and plugin changes are recorded with user, IP and time (viewer in the *More* menu).
+- ✋ **Typed confirmation** before dropping a database (enforced server-side too); system schemas can't be dropped.
 - 🚫 **Web Execution Lockdown**: Direct HTTP access to PHP files in `plugins/`, `backend/`, `vendor/`, and `temp_ssh/` is prohibited via `.htaccess` and Nginx rules.
 
 > 🔒 *Read our full security policy and disclosure guidelines in [`SECURITY.md`](SECURITY.md).*
@@ -177,6 +180,18 @@ sudo systemctl reload nginx
 ```
 
 > ⚠️ **Nginx SSE Tip**: Ensure `fastcgi_buffering off;` and `proxy_buffering off;` are enabled so terminal Server-Sent Events stream without buffering delay.
+
+---
+
+## 🧪 Testing
+
+```bash
+make test               # unit tests (PHP, no dependencies)
+make test-integration   # real MySQL/MariaDB + FTP/SFTP/SSH servers (see tests/integration/setup-servers.sh)
+make test-e2e           # Playwright browser tests (npm install first)
+```
+
+GitHub Actions runs lint/unit on PHP 7.4 / 8.1 / 8.3, the API integration suite on MySQL 5.7, MySQL 8.0 and MariaDB 10.11, and the browser tests.
 
 ---
 

@@ -36,6 +36,17 @@ try {
         file_put_contents($outputFile, $initial, FILE_APPEND);
     }
     $ssh->setTimeout(0.05);
+    // phpseclib keeps returning '' and isConnected() stays true after the remote shell exits
+    // (e.g. `exit`); the only signal is the channel status becoming SSH_MSG_CHANNEL_CLOSE (97, RFC 4254).
+    $channelStatus = new ReflectionProperty(SSH2::class, 'channel_status');
+    $channelStatus->setAccessible(true);
+    $channelClosed = function () use ($ssh, $channelStatus): bool {
+        try {
+            return in_array(97, (array)$channelStatus->getValue($ssh), true);
+        } catch (\Throwable $e) {
+            return false;
+        }
+    };
     $inputPos = 0;
     $idleStart = time();
     $maxIdleSeconds = 3600;
@@ -77,6 +88,10 @@ try {
                     $hasData = true;
                 }
             }
+        }
+        if ($channelClosed()) {
+            file_put_contents($outputFile, "\r\n\x1b[1;33mSession closed.\x1b[0m\r\n", FILE_APPEND);
+            break;
         }
         if (!$ssh->isConnected()) {
             file_put_contents($outputFile, "\r\n\x1b[1;31mSSH connection lost.\x1b[0m\r\n", FILE_APPEND);

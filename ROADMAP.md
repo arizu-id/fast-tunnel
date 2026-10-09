@@ -20,17 +20,19 @@ This roadmap outlines the planned features, enhancements, and milestones for **F
 ### 🟡 Version 1.1 (Next Release - In Progress)
 - [ ] **Docker Hub Automated Image**: Official 1-click Docker container (`docker run -p 8080:80 arizu/fast-tunnel`).
 - [ ] **SQLite Embedded Database Mode**: Option to run Fast Tunnel without needing an external MySQL instance for local app storage.
-- [ ] **Two-Factor Authentication (2FA)**: Time-based One-Time Passwords (TOTP / Google Authenticator) for admin login.
-- [ ] **SFTP Protocol Adapter**: Direct SFTP support using SSH keys alongside traditional FTP/FTPS.
+- [x] **Two-Factor Authentication (2FA)**: Time-based One-Time Passwords (TOTP / Google Authenticator) with recovery codes.
+- [x] **SFTP Protocol Adapter**: SFTP with password login alongside FTP.
+- [ ] **SSH key authentication** for SFTP and the SSH terminal.
 - [ ] **Dark / Light / OLED Theme Switcher**: Native theme toggle built directly into the core navigation bar.
 
 ---
 
 ### 🔵 Version 1.2 (Planned)
 - [ ] **Multi-Tab Terminal Sessions**: Open and manage multiple simultaneous SSH terminals side-by-side.
-- [ ] **Database Import & Export**: One-click SQL dump export (`.sql`, `.sql.gz`) and SQL file upload runner.
+- [x] **Database Import & Export**: SQL dump / CSV export and `.sql` / `.csv` import runner.
+- [ ] Compressed dumps (`.sql.gz`) and DELIMITER-based routine/trigger import.
 - [ ] **File Archive Tools**: Compress to ZIP/TAR and decompress remote server archives directly in the web file manager.
-- [ ] **Audit Logging & Activity History**: Detailed audit trail for logins, connection attempts, and file operations.
+- [x] **Audit Logging & Activity History**: Audit trail for logins and destructive/sensitive operations.
 - [ ] **Internationalization (i18n)**: Out-of-the-box support for English, Indonesian, Spanish, Japanese, and German.
 
 ---

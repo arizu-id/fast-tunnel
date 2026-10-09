@@ -341,6 +341,45 @@ $r = http('POST', "$base/api/auth_login", ['username' => 'admin', 'password' => 
 check('password-only login works again after disabling', ok($r), $r['text']);
 $csrf = $r['json']['csrf_token'] ?? '';
 
+// ---- SSH terminal (PTY daemon + SSE stream) ----
+function testSsh(string $host, int $port, string $user, string $pass): void {
+    global $base, $root, $jar, $csrf;
+    $r = api('ssh_connect', ['host' => $host, 'port' => $port, 'user' => $user, 'password' => $pass, 'cols' => 100, 'rows' => 30]);
+    check('[ssh] connect starts the PTY daemon', ok($r) && ($r['json']['pty_ready'] ?? false) === true, $r['text']);
+    if (!ok($r)) return;
+    check('[ssh] bad password refused', !ok(api('ssh_connect', ['host' => $host, 'port' => $port, 'user' => $user, 'password' => 'nope'])));
+    // that failed attempt must not have replaced the live stream
+    $tmp = "$root/temp_ssh";
+    $filesBefore = glob("$tmp/*") ?: [];
+    check('[ssh] session file with the encrypted password exists while connected', count(glob("$tmp/*.json") ?: []) >= 1);
+    api('ssh_send_input', ['input' => "echo FT_MARK_$(( 6*7 ))\n"]);
+    $out = '';
+    $ch = curl_init("$base/api/ssh_stream_output");
+    curl_setopt_array($ch, [CURLOPT_COOKIEFILE => $jar, CURLOPT_TIMEOUT => 12, CURLOPT_HTTPHEADER => ["X-CSRF-Token: $csrf"],
+        CURLOPT_WRITEFUNCTION => function ($c, $chunk) use (&$out) { $out .= $chunk; return strpos($out, 'FT_MARK_42') !== false ? -1 : strlen($chunk); }]);
+    curl_exec($ch);
+    curl_close($ch);
+    $decoded = '';
+    foreach (explode("\n", $out) as $line) if (strpos($line, 'data: ') === 0) $decoded .= (json_decode(substr($line, 6), true)['output'] ?? '');
+    check('[ssh] command output arrives over SSE', strpos($decoded, 'FT_MARK_42') !== false, substr($decoded, -200));
+    api('ssh_resize', ['cols' => 120, 'rows' => 40]);
+    $r = api('ssh_get_server_info');
+    check('[ssh] server info over a second connection', ok($r) && !empty($r['json']['info']['os']), $r['text']);
+    $r = api('ssh_disconnect');
+    check('[ssh] disconnect', ok($r));
+    usleep(800000);
+    $left = array_filter(glob("$tmp/*") ?: [], 'is_file');
+    check('[ssh] no IPC files left behind after disconnect', count($left) === 0, json_encode(array_values($left)));
+    // when the remote shell ends by itself the daemon must delete the file holding the encrypted password
+    api('ssh_connect', ['host' => $host, 'port' => $port, 'user' => $user, 'password' => $pass]);
+    api('ssh_send_input', ['input' => "exit\n"]);
+    $gone = false;
+    for ($i = 0; $i < 40 && !$gone; $i++) { usleep(250000); $gone = !glob("$tmp/*.json"); }
+    check('[ssh] daemon removes its session file when the shell exits', $gone);
+    api('ssh_disconnect');
+}
+if (getenv('FT_SFTP_PORT')) testSsh('127.0.0.1', (int)getenv('FT_SFTP_PORT'), getenv('FT_FILE_USER'), getenv('FT_FILE_PASS'));
+
 // audit trail
 $r = api('auth_audit_list', ['limit' => 200]);
 $actions = array_column($r['json']['entries'] ?? [], 'action');
