@@ -11,6 +11,7 @@ Auth::boot();
 require_once __DIR__.'/vendor/autoload.php';
 require_once __DIR__.'/backend/FtpClient.php';
 require_once __DIR__.'/backend/MysqlClient.php';
+require_once __DIR__.'/backend/SqlTools.php';
 require_once __DIR__.'/backend/SshClient.php';
 require_once __DIR__.'/backend/api_helpers.php';
 loadPluginBackends();
@@ -28,7 +29,7 @@ Auth::requireApiAuth();
 if($method==='POST'&&!in_array($action,$csrfExempt)){
 Auth::validateCsrf();
 }
-if($action!=='ssh_stream_output'){
+if($action!=='ssh_stream_output'&&$action!=='mysql_export'){
 header('Content-Type: application/json');
 }
 try{

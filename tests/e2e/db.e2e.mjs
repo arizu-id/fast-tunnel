@@ -37,7 +37,8 @@ const cols = [
 ];
 await page.route('**/api/**', async r => {
   const action = new URL(r.request().url()).pathname.split('/').pop();
-  const body = r.request().postDataJSON() || {};
+  let body = {};
+  try { body = r.request().postDataJSON() || {}; } catch (e) { body = { _multipart: r.request().postData() || '' }; }
   calls.push({ action, body });
   await new Promise(x => setTimeout(x, 500));
   const ok = o => r.fulfill({ contentType: 'application/json', body: JSON.stringify({ success: true, ...o }) });
@@ -51,6 +52,11 @@ await page.route('**/api/**', async r => {
     case 'mysql_delete_rows': { const ids = body.pk_rows.map(x => x.id); db[body.table] = db[body.table].filter(x => !ids.includes(x.id)); return ok({ affected: ids.length }); }
     case 'mysql_drop_database': delete dbs[body.db_name]; return ok({ databases: Object.keys(dbs) });
     case 'mysql_drop_columns': return ok({});
+    case 'mysql_create_database': dbs[body.db_name] = {}; return ok({ databases: Object.keys(dbs) });
+    case 'mysql_create_table': dbs[body.db_name][body.table] = []; return ok({});
+    case 'mysql_run_query': return ok({ type: 'select', columns: ['n'], rows: [{ n: 1 }] });
+    case 'mysql_export': return r.fulfill({ contentType: 'text/csv', headers: { 'Content-Disposition': 'attachment; filename="shop_users.csv"' }, body: 'id,name\n1,a\n' });
+    case 'mysql_import': return ok({ rows: 2, statements: 3 });
     default: return r.fulfill({ status: 400, contentType: 'application/json', body: JSON.stringify({ success: false, error: 'unexpected ' + action }) });
   }
 });
@@ -126,6 +132,66 @@ check('drop db: sidebar row ft-loading', await page.locator('.db-tree-db[data-db
 await page.waitForTimeout(1200);
 check('drop db: request carries confirm_name', calls.some(c => c.action === 'mysql_drop_database' && c.body.db_name === 'blog' && c.body.confirm_name === 'blog'));
 check('drop db: removed from sidebar', await page.locator('.db-tree-db[data-db="blog"]').count() === 0);
+// ---- new features ----
+// sorting: header click sends order_by
+await page.click('.db-tab-btn[data-tab="browse"]');
+await page.evaluate(() => document.querySelector('#dbStructureBody tr[data-table="users"] .btn-st-browse').click());
+await page.waitForSelector('#dbBrowseThead .db-sort-th');
+await page.click('#dbBrowseThead .db-sort-th[data-col="name"]');
+await page.waitForTimeout(800);
+check('sort: ASC request', calls.some(c => c.action === 'mysql_table_data' && c.body.order_by === 'name' && c.body.order_dir === 'ASC'));
+await page.click('#dbBrowseThead .db-sort-th[data-col="name"]');
+await page.waitForTimeout(800);
+check('sort: DESC request', calls.some(c => c.action === 'mysql_table_data' && c.body.order_by === 'name' && c.body.order_dir === 'DESC'));
+
+// format SQL + history
+await page.click('.db-tab-btn[data-tab="sql"]');
+await page.fill('#sqlQueryInput', "select a,b from t where x=1 and y=2 order by a");
+await page.click('#btnFormatSql');
+check('format SQL', (await page.inputValue('#sqlQueryInput')) === 'SELECT a,\n  b\nFROM t\nWHERE x = 1\n  AND y = 2\nORDER BY a');
+await page.focus('#sqlQueryInput');
+await page.keyboard.press('Control+Enter');
+await page.waitForTimeout(900);
+check('ctrl+enter runs the query', calls.some(c => c.action === 'mysql_run_query'));
+await page.click('#btnSqlHistory');
+check('history lists the executed query', (await page.locator('#sqlHistoryMenu .dropdown-item').first().innerText()).startsWith('SELECT a, b FROM t'));
+await page.keyboard.press('Escape');
+
+// create database (typed in modal) -> appears + selected
+await page.click('#btnNewDatabase');
+await page.waitForSelector('#dbNewDatabaseModal.show');
+await page.fill('#dbNewDbName', 'fresh');
+await page.click('#btnCreateDatabase');
+await page.waitForSelector('.db-tree-db[data-db="fresh"]');
+check('create database: request + sidebar item', calls.some(c => c.action === 'mysql_create_database' && c.body.db_name === 'fresh') && await page.locator('.db-tree-db[data-db="fresh"]').count() === 1);
+await page.waitForSelector('#dbNewDatabaseModal', { state: 'hidden' });
+
+// create table
+await page.click('.db-tab-btn[data-tab="structure"]');
+await page.waitForSelector('#btnNewTable');
+await page.click('#btnNewTable');
+await page.waitForSelector('#dbNewTableModal.show');
+await page.fill('#dbNewTableName', 'items');
+await page.click('#btnNewTableAddCol');
+await page.locator('#dbNewTableCols tr').nth(1).locator('.nt-name').fill('title');
+await page.click('#btnCreateTable');
+await page.waitForTimeout(900);
+const ct = calls.find(c => c.action === 'mysql_create_table');
+check('create table: request has 2 columns, id PK+AI', ct && ct.body.table === 'items' && ct.body.columns.length === 2 && ct.body.columns[0].pk && ct.body.columns[0].ai && ct.body.columns[1].name === 'title');
+
+// export (download) + import (csv)
+await page.waitForSelector('#dbNewTableModal', { state: 'hidden' });
+await page.waitForSelector('#dbStructureBody tr[data-table="items"]');
+const [dl] = await Promise.all([page.waitForEvent('download'), page.click('#dbStructureBody tr[data-table="items"] .btn-st-export-csv')]);
+check('export: browser download named from header', dl.suggestedFilename() === 'shop_users.csv');
+await page.click('#btnImportDb');
+await page.waitForSelector('#dbImportModal.show');
+await page.setInputFiles('#dbImportFile', { name: 'rows.csv', mimeType: 'text/csv', buffer: Buffer.from('id,name\n1,a\n') });
+check('import: csv options shown', await page.locator('#dbImportCsvOpts').isVisible());
+await page.click('#btnRunImport');
+await page.waitForTimeout(900);
+check('import: multipart request', calls.some(c => c.action === 'mysql_import' && c._multipart !== undefined || c.body._multipart));
+
 check('no stuck loading', await page.locator('.ft-loading').count() === 0);
 check('no JS errors', errors.length === 0);
 if (errors.length) console.log(errors.join('\n'));

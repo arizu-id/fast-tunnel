@@ -2,11 +2,15 @@ import { state } from './state.js';
 import { showToast } from './ui.js';
 import { api } from './api.js';
 import { setLoading, withLoading } from './loading.js';
-import { escapeHtml, dbState, switchDbTab, showDbConfirm, setActiveTable, formatBytes } from './db-helpers.js';
+import { formatSql, getSqlHistory, pushSqlHistory, clearSqlHistory, downloadExport, uploadImport } from './db-tools.js';
+import { escapeAttr, escapeHtml, dbState, switchDbTab, showDbConfirm, setActiveTable, formatBytes } from './db-helpers.js';
 let currentDb = '';
 let currentTable = '';
 let currentPage = 1;
 const limit = 50;
+let sortTable = '';
+let sortCol = '';
+let sortDir = 'ASC';
 export function connectMysql(sessionId, session) {
     if (state.isConnecting) {
         showToast('Connection in progress, please wait...', 'warning');
@@ -173,6 +177,28 @@ function setupDbWorkspace() {
         }
     });
     $('#btnRunSql').off('click').on('click', runQuery);
+    $('#sqlQueryInput').off('keydown.run').on('keydown.run', e => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); runQuery(); }
+    });
+    $('#btnFormatSql').off('click').on('click', () => {
+        const $in = $('#sqlQueryInput');
+        if ($in.val().trim()) $in.val(formatSql($in.val()));
+    });
+    $('#btnSqlHistory').off('show.bs.dropdown').on('show.bs.dropdown', renderSqlHistory);
+    $('#btnNewDatabase').off('click').on('click', () => {
+        $('#dbNewDbName').val('');
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('dbNewDatabaseModal')).show();
+    });
+    $('#btnCreateDatabase').off('click').on('click', createDatabase);
+    $('#btnNewTable').off('click').on('click', openNewTableModal);
+    $('#btnNewTableAddCol').off('click').on('click', () => addNewTableColumn());
+    $('#btnCreateTable').off('click').on('click', createTable);
+    $('#btnExportDb').off('click').on('click', function() {
+        runExport($(this), { db_name: currentDb, format: 'sql' });
+    });
+    $('#btnImportDb').off('click').on('click', openImportModal);
+    $('#dbImportFile').off('change').on('change', syncImportOptions);
+    $('#btnRunImport').off('click').on('click', runImport);
     $('#btnRunSqlExplain').off('click').on('click', () => {
         const sql = $('#sqlQueryInput').val().trim();
         if (sql) {
@@ -233,6 +259,7 @@ function browseTable(table, page) {
     $('#dbBrowsePlaceholder').addClass('d-none');
     $('#dbBrowseContent').removeClass('d-none');
     $('#dbBrowseTableTitle').text(table);
+    if (sortTable !== table) { sortTable = table; sortCol = ''; sortDir = 'ASC'; }
     const $thead = $('#dbBrowseThead');
     const $tbody = $('#dbBrowseTbody');
     $thead.empty();
@@ -240,7 +267,7 @@ function browseTable(table, page) {
     fetch('/api/mysql_table_data', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ table: table, page: page, limit: limit, db_name: currentDb })
+        body: JSON.stringify({ table: table, page: page, limit: limit, db_name: currentDb, order_by: sortCol, order_dir: sortDir })
     })
     .then(r => r.json())
     .then(data => {
@@ -256,7 +283,8 @@ function browseTable(table, page) {
         thHtml += '<th class="px-3 py-2 text-center" style="width:40px;"><input type="checkbox" class="form-check-input" id="dbBrowseSelectAll"></th>';
         thHtml += '<th class="px-3 py-2" style="color:#a1a1aa;font-weight:600;font-size:.72rem;text-transform:uppercase;width:50px;">#</th>';
         cols.forEach(col => {
-            thHtml += `<th class="px-3 py-2 text-nowrap" style="color:#a1a1aa;font-weight:600;font-size:.72rem;text-transform:uppercase;letter-spacing:.5px;">${col}</th>`;
+            const arrow = sortCol === col ? (sortDir === 'ASC' ? ' <i class="bi bi-caret-up-fill"></i>' : ' <i class="bi bi-caret-down-fill"></i>') : '';
+            thHtml += `<th class="px-3 py-2 text-nowrap db-sort-th" data-col="${escapeAttr(col)}" title="Click to sort" style="color:${sortCol === col ? '#e4e4e7' : '#a1a1aa'};font-weight:600;font-size:.72rem;text-transform:uppercase;letter-spacing:.5px;cursor:pointer;user-select:none;">${escapeHtml(col)}${arrow}</th>`;
         });
         thHtml += '</tr>';
         $thead.html(thHtml);
@@ -362,6 +390,7 @@ function runQuery() {
     setLoading($btns, true);
     api('mysql_run_query', { sql: sql, db_name: currentDb })
     .then(data => {
+        pushSqlHistory(sql);
         if (data.rows) {
             const cols = data.columns || [];
             let headerHtml = cols.map(c => `<th class="px-3 py-2" style="color:#a1a1aa;font-weight:600;font-size:.72rem;text-transform:uppercase;">${c}</th>`).join('');
@@ -439,6 +468,8 @@ export function selectDatabase(db, $trigger) {
                 <td class="px-3 py-2 text-nowrap">
                     <button class="btn btn-sm btn-icon text-success btn-st-browse" title="Browse"><i class="bi bi-table"></i></button>
                     <button class="btn btn-sm btn-icon text-info btn-st-columns" title="Structure"><i class="bi bi-list-columns-reverse"></i></button>
+                    <button class="btn btn-sm btn-icon text-secondary btn-st-export-csv" title="Export CSV"><i class="bi bi-filetype-csv"></i></button>
+                    <button class="btn btn-sm btn-icon text-secondary btn-st-export-sql" title="Export SQL"><i class="bi bi-filetype-sql"></i></button>
                     <button class="btn btn-sm btn-icon text-warning btn-st-truncate" title="Truncate"><i class="bi bi-eraser"></i></button>
                     <button class="btn btn-sm btn-icon text-danger btn-st-drop" title="Drop"><i class="bi bi-trash3"></i></button>
                 </td>
@@ -716,4 +747,141 @@ function saveEditedRow() {
     })
     .catch(err => showToast(err.message, 'danger'))
     .finally(() => setLoading($tr, false));
+}
+
+
+// ───────────────────────── Sorting, history, export/import, create ─────────────────────────
+
+$(document).on('click', '#dbBrowseThead .db-sort-th', function() {
+    const col = $(this).attr('data-col');
+    if (sortCol !== col) { sortCol = col; sortDir = 'ASC'; }
+    else if (sortDir === 'ASC') { sortDir = 'DESC'; }
+    else { sortCol = ''; sortDir = 'ASC'; }
+    browseTable(currentTable, 1);
+});
+
+function renderSqlHistory() {
+    const $menu = $('#sqlHistoryMenu').empty();
+    const history = getSqlHistory();
+    if (!history.length) {
+        $menu.append('<li><span class="dropdown-item-text text-muted small">No queries yet</span></li>');
+        return;
+    }
+    history.forEach(sql => {
+        const $a = $('<a class="dropdown-item small text-truncate font-monospace" href="#"></a>')
+            .text(sql.replace(/\s+/g, ' ')).attr('title', sql)
+            .on('click', e => { e.preventDefault(); $('#sqlQueryInput').val(sql); });
+        $menu.append($('<li></li>').append($a));
+    });
+    $menu.append('<li><hr class="dropdown-divider"></li>');
+    $menu.append($('<li></li>').append($('<a class="dropdown-item small text-danger" href="#"><i class="bi bi-trash me-1"></i>Clear history</a>')
+        .on('click', e => { e.preventDefault(); clearSqlHistory(); })));
+}
+
+function runExport($btn, params) {
+    return withLoading($btn, downloadExport(params), { text: $btn.is('.btn-icon') ? '' : 'Exporting...' })
+        .then(() => showToast('Export ready'))
+        .catch(err => showToast(err.message, 'danger'));
+}
+$(document).on('click', '#dbStructureBody .btn-st-export-csv, #dbStructureBody .btn-st-export-sql', function() {
+    const $btn = $(this);
+    const csv = $btn.hasClass('btn-st-export-csv');
+    runExport($btn, { db_name: currentDb, table: $btn.closest('tr').data('table'), format: csv ? 'csv' : 'sql' });
+});
+
+function createDatabase() {
+    const name = $('#dbNewDbName').val().trim();
+    if (!name) { showToast('Database name is required', 'danger'); return; }
+    withLoading($('#btnCreateDatabase'), api('mysql_create_database', { db_name: name, charset: $('#dbNewDbCharset').val() }), { text: 'Creating...' })
+    .then(res => {
+        bootstrap.Modal.getInstance(document.getElementById('dbNewDatabaseModal')).hide();
+        showToast(`Database "${name}" created`);
+        setupDbSidebar(res.databases, name);
+    })
+    .catch(err => showToast(err.message, 'danger'));
+}
+
+const COLUMN_TYPES = ['INT', 'BIGINT', 'SMALLINT', 'TINYINT', 'VARCHAR', 'CHAR', 'TEXT', 'DATE', 'DATETIME', 'TIMESTAMP', 'DECIMAL', 'FLOAT', 'DOUBLE', 'BLOB'];
+function addNewTableColumn(def = {}) {
+    const $tr = $(`<tr>
+        <td><input type="text" class="form-control form-control-sm bg-darker border-secondary text-light nt-name" placeholder="column"></td>
+        <td><select class="form-select form-select-sm bg-darker border-secondary text-light nt-type">${COLUMN_TYPES.map(t => `<option>${t}</option>`).join('')}</select></td>
+        <td><input type="text" class="form-control form-control-sm bg-darker border-secondary text-light nt-len" placeholder="255"></td>
+        <td class="text-center"><input type="checkbox" class="form-check-input nt-null"></td>
+        <td class="text-center"><input type="checkbox" class="form-check-input nt-ai"></td>
+        <td class="text-center"><input type="checkbox" class="form-check-input nt-pk"></td>
+        <td><button class="btn btn-sm btn-icon text-danger nt-remove" title="Remove"><i class="bi bi-x-lg"></i></button></td>
+    </tr>`);
+    $tr.find('.nt-name').val(def.name || '');
+    $tr.find('.nt-type').val(def.type || 'VARCHAR');
+    $tr.find('.nt-len').val(def.length || '');
+    $tr.find('.nt-null').prop('checked', def.nullable !== false);
+    $tr.find('.nt-ai').prop('checked', !!def.ai).on('change', function() { if (this.checked) $tr.find('.nt-pk').prop('checked', true).end().find('.nt-null').prop('checked', false); });
+    $tr.find('.nt-pk').prop('checked', !!def.pk);
+    $tr.find('.nt-remove').on('click', () => $tr.remove());
+    $('#dbNewTableCols').append($tr);
+}
+function openNewTableModal() {
+    if (!currentDb) { showToast('Select a database first', 'warning'); return; }
+    $('#dbNewTableName').val('');
+    $('#dbNewTableCols').empty();
+    addNewTableColumn({ name: 'id', type: 'INT', ai: true, pk: true, nullable: false });
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('dbNewTableModal')).show();
+}
+function createTable() {
+    const table = $('#dbNewTableName').val().trim();
+    if (!table) { showToast('Table name is required', 'danger'); return; }
+    const columns = $('#dbNewTableCols tr').map((_, tr) => {
+        const $r = $(tr);
+        return {
+            name: $r.find('.nt-name').val().trim(),
+            type: $r.find('.nt-type').val(),
+            length: $r.find('.nt-len').val().trim(),
+            nullable: $r.find('.nt-null').is(':checked'),
+            ai: $r.find('.nt-ai').is(':checked'),
+            pk: $r.find('.nt-pk').is(':checked')
+        };
+    }).get();
+    withLoading($('#btnCreateTable'), api('mysql_create_table', { db_name: currentDb, table, columns }), { text: 'Creating...' })
+    .then(() => {
+        bootstrap.Modal.getInstance(document.getElementById('dbNewTableModal')).hide();
+        showToast(`Table "${table}" created`);
+        selectDatabase(currentDb);
+    })
+    .catch(err => showToast(err.message, 'danger'));
+}
+
+function openImportModal() {
+    if (!currentDb) { showToast('Select a database first', 'warning'); return; }
+    $('#dbImportDbName').text(currentDb);
+    $('#dbImportFile').val('');
+    $('#dbImportCsvOpts, #dbImportSqlOpts').addClass('d-none');
+    const $sel = $('#dbImportTable').empty();
+    $('#dbStructureBody tr[data-table]').each((_, tr) => $sel.append($('<option></option>').text($(tr).data('table'))));
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('dbImportModal')).show();
+}
+function syncImportOptions() {
+    const f = this.files[0];
+    const csv = !!f && /\.csv$/i.test(f.name);
+    $('#dbImportCsvOpts').toggleClass('d-none', !csv);
+    $('#dbImportSqlOpts').toggleClass('d-none', !f || csv);
+}
+function runImport() {
+    const f = $('#dbImportFile')[0].files[0];
+    if (!f) { showToast('Choose a file first', 'danger'); return; }
+    const csv = /\.csv$/i.test(f.name);
+    const fields = { db_name: currentDb, format: csv ? 'csv' : 'sql' };
+    if (csv) {
+        fields.table = $('#dbImportTable').val() || '';
+        if (!fields.table) { showToast('Choose a target table', 'danger'); return; }
+        if ($('#dbImportEmptyNull').is(':checked')) fields.empty_as_null = '1';
+    }
+    withLoading($('#btnRunImport'), uploadImport(fields, f), { text: 'Importing...' })
+    .then(res => {
+        bootstrap.Modal.getInstance(document.getElementById('dbImportModal')).hide();
+        showToast(csv ? `Imported ${res.rows} row(s)` : `Executed ${res.statements} statement(s)`);
+        selectDatabase(currentDb);
+        if (currentTable && !$('#dbPaneBrowse').hasClass('d-none')) browseTable(currentTable, currentPage);
+    })
+    .catch(err => showToast(err.message, 'danger'));
 }

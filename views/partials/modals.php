@@ -794,3 +794,63 @@
         </div>
     </div>
 </div>
+
+<div class="modal fade" id="dbNewDatabaseModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content bg-dark text-light border-secondary shadow-lg" style="border-radius:12px;">
+            <div class="modal-header border-secondary"><h6 class="modal-title fw-bold"><i class="bi bi-database-add text-success me-2"></i>New Database</h6><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <label class="form-label text-muted small fw-bold text-uppercase">Name</label>
+                <input type="text" class="form-control bg-darker border-secondary text-light shadow-none mb-3" id="dbNewDbName" autocomplete="off" placeholder="my_database">
+                <label class="form-label text-muted small fw-bold text-uppercase">Character set</label>
+                <select class="form-select bg-darker border-secondary text-light shadow-none" id="dbNewDbCharset">
+                    <option value="utf8mb4" selected>utf8mb4</option><option value="utf8">utf8</option><option value="latin1">latin1</option>
+                </select>
+            </div>
+            <div class="modal-footer border-secondary"><button class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button><button class="btn btn-sm btn-success px-3" id="btnCreateDatabase">Create</button></div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="dbNewTableModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+        <div class="modal-content bg-dark text-light border-secondary shadow-lg" style="border-radius:12px;">
+            <div class="modal-header border-secondary"><h6 class="modal-title fw-bold"><i class="bi bi-table text-success me-2"></i>New Table</h6><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <label class="form-label text-muted small fw-bold text-uppercase">Table name</label>
+                <input type="text" class="form-control bg-darker border-secondary text-light shadow-none mb-3" id="dbNewTableName" autocomplete="off" placeholder="users">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <label class="form-label text-muted small fw-bold text-uppercase mb-0">Columns</label>
+                    <button class="btn btn-sm btn-outline-success" id="btnNewTableAddCol"><i class="bi bi-plus-lg me-1"></i>Add column</button>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-dark table-sm align-middle mb-0" style="font-size:.82rem;">
+                        <thead><tr class="text-muted"><th>Name</th><th>Type</th><th style="width:90px">Length</th><th class="text-center">Null</th><th class="text-center">A_I</th><th class="text-center">PK</th><th></th></tr></thead>
+                        <tbody id="dbNewTableCols"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer border-secondary"><button class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button><button class="btn btn-sm btn-success px-3" id="btnCreateTable">Create table</button></div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="dbImportModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark text-light border-secondary shadow-lg" style="border-radius:12px;">
+            <div class="modal-header border-secondary"><h6 class="modal-title fw-bold"><i class="bi bi-upload text-info me-2"></i>Import into <span id="dbImportDbName" class="text-info"></span></h6><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <label class="form-label text-muted small fw-bold text-uppercase">File (.sql or .csv, max 64 MB)</label>
+                <input type="file" class="form-control bg-darker border-secondary text-light shadow-none mb-3" id="dbImportFile" accept=".sql,.csv,text/csv,application/sql,text/plain">
+                <div id="dbImportCsvOpts" class="d-none">
+                    <label class="form-label text-muted small fw-bold text-uppercase">Target table</label>
+                    <select class="form-select bg-darker border-secondary text-light shadow-none mb-2" id="dbImportTable"></select>
+                    <div class="form-check"><input class="form-check-input" type="checkbox" id="dbImportEmptyNull"><label class="form-check-label small" for="dbImportEmptyNull">Treat empty values as NULL</label></div>
+                    <div class="text-muted small mt-2">The first row must be a header with existing column names. All rows are inserted in one transaction.</div>
+                </div>
+                <div id="dbImportSqlOpts" class="text-muted small d-none">SQL statements run one by one; the import stops at the first error (statements already run stay applied).</div>
+            </div>
+            <div class="modal-footer border-secondary"><button class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button><button class="btn btn-sm btn-info px-3" id="btnRunImport">Import</button></div>
+        </div>
+    </div>
+</div>

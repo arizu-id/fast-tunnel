@@ -17,7 +17,10 @@
     <div class="db-sidebar border-end border-secondary d-none flex-column" id="dbSidebar" style="width: 260px; background-color: #18181b;">
         <div class="p-2 border-bottom border-secondary d-flex justify-content-between align-items-center bg-dark panel-header">
             <span class="small text-muted text-uppercase fw-semibold ms-2" style="letter-spacing: 0.5px;" data-i18n="database_explorer">Database Explorer</span>
-            <button class="btn btn-sm btn-icon text-danger btn-db-disconnect" style="padding: 2px 6px;" title="Disconnect" data-i18n-title="disconnect"><i class="bi bi-power"></i></button>
+            <div class="d-flex align-items-center">
+                <button class="btn btn-sm btn-icon text-success" id="btnNewDatabase" style="padding: 2px 6px;" title="New database"><i class="bi bi-plus-circle"></i></button>
+                <button class="btn btn-sm btn-icon text-danger btn-db-disconnect" style="padding: 2px 6px;" title="Disconnect" data-i18n-title="disconnect"><i class="bi bi-power"></i></button>
+            </div>
         </div>
         <div class="flex-grow-1 overflow-auto py-2" id="dbTreeContainer">
         </div>
@@ -80,7 +83,16 @@
                              <i class="bi bi-folder2-open me-2 text-warning"></i>
                              <span id="dbStructureDbName"></span>
                          </h6>
-                         <div class="d-flex gap-2">
+                         <div class="d-flex gap-2 flex-wrap justify-content-end">
+                             <button class="btn btn-sm btn-outline-success" id="btnNewTable">
+                                 <i class="bi bi-plus-lg me-1"></i>New Table
+                             </button>
+                             <button class="btn btn-sm btn-outline-secondary" id="btnImportDb">
+                                 <i class="bi bi-upload me-1"></i>Import
+                             </button>
+                             <button class="btn btn-sm btn-outline-secondary" id="btnExportDb">
+                                 <i class="bi bi-download me-1"></i>Export SQL
+                             </button>
                              <button class="btn btn-sm btn-outline-secondary" id="btnRefreshStructure">
                                  <i class="bi bi-arrow-clockwise me-1"></i><span data-i18n="refresh">Refresh</span>
                              </button>
@@ -121,6 +133,10 @@
                  <div class="mb-2 d-flex justify-content-between align-items-center">
                      <label class="form-label small text-muted text-uppercase fw-semibold mb-0" style="letter-spacing: 0.5px;" data-i18n="sql_query_runner">SQL Query Runner</label>
                      <div class="d-flex gap-2">
+                         <div class="dropdown">
+                             <button class="btn btn-sm btn-outline-secondary dropdown-toggle" id="btnSqlHistory" data-bs-toggle="dropdown" aria-expanded="false"><i class="bi bi-clock-history me-1"></i>History</button>
+                             <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end border-secondary" id="sqlHistoryMenu" style="max-width:520px;max-height:320px;overflow:auto;"></ul>
+                         </div>
                          <button class="btn btn-sm btn-outline-secondary" id="btnClearSql"><i class="bi bi-trash me-1"></i><span data-i18n="clear">Clear</span></button>
                          <button class="btn btn-sm btn-outline-secondary" id="btnFormatSql"><i class="bi bi-text-left me-1"></i><span data-i18n="format">Format</span></button>
                      </div>

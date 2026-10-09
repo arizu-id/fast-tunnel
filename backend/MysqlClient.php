@@ -75,8 +75,11 @@ class MysqlClient {
         }
         return '`' . str_replace('`', '``', $id) . '`';
     }
-    public function getTableData($table, $page = 1, $limit = 50) {
+    public function getTableData($table, $page = 1, $limit = 50, $orderBy = null, $orderDir = 'ASC') {
         $tq = $this->quoteIdent($table);
+        $orderSql = ($orderBy !== null && $orderBy !== '')
+            ? ' ORDER BY ' . $this->quoteIdent($orderBy) . (strtoupper((string)$orderDir) === 'DESC' ? ' DESC' : ' ASC')
+            : '';
         $page = max(1, (int)$page);
         $limit = min(1000, max(1, (int)$limit));
         $offset = ($page - 1) * $limit;
@@ -86,7 +89,7 @@ class MysqlClient {
                 throw new Exception($this->conn->error);
             }
             $total = (int)$countRes->fetch_row()[0];
-            $dataRes = $this->conn->query("SELECT * FROM {$tq} LIMIT $limit OFFSET $offset");
+            $dataRes = $this->conn->query("SELECT * FROM {$tq}$orderSql LIMIT $limit OFFSET $offset");
             if (!$dataRes) {
                 throw new Exception($this->conn->error);
             }
@@ -115,7 +118,7 @@ class MysqlClient {
         } else {
             $countStmt = $this->conn->query("SELECT COUNT(*) FROM {$tq}");
             $total = (int)$countStmt->fetchColumn();
-            $dataStmt = $this->conn->query("SELECT * FROM {$tq} LIMIT $limit OFFSET $offset");
+            $dataStmt = $this->conn->query("SELECT * FROM {$tq}$orderSql LIMIT $limit OFFSET $offset");
             $rows = $dataStmt->fetchAll();
             $columns = [];
             if (!empty($rows)) {
@@ -218,6 +221,66 @@ class MysqlClient {
             $stmt->execute($params);
             return $stmt->rowCount();
         }
+    }
+    public function quote($value) {
+        if ($value === null) return 'NULL';
+        if ($this->useMysqli) {
+            return "'" . $this->conn->real_escape_string((string)$value) . "'";
+        }
+        return $this->conn->quote((string)$value);
+    }
+    /** Iterate a (possibly huge) result set row by row without buffering it all in memory. */
+    public function forEachRow($sql, callable $fn) {
+        if ($this->useMysqli) {
+            $res = $this->conn->query($sql, MYSQLI_USE_RESULT);
+            if (!$res) {
+                throw new Exception($this->conn->error);
+            }
+            while ($row = $res->fetch_assoc()) {
+                $fn($row);
+            }
+            $res->free();
+            return;
+        }
+        $this->conn->setAttribute(PDO::MYSQL_ATTR_USE_BUFFERED_QUERY, false);
+        try {
+            $stmt = $this->conn->query($sql);
+            while ($row = $stmt->fetch()) {
+                $fn($row);
+            }
+            $stmt->closeCursor();
+        } finally {
+            $this->conn->setAttribute(PDO::MYSQL_ATTR_USE_BUFFERED_QUERY, true);
+        }
+    }
+    /** Run $fn atomically (rolled back on any exception, also on pooled connections). */
+    public function transaction(callable $fn) {
+        if ($this->useMysqli) {
+            $this->conn->begin_transaction();
+            try {
+                $r = $fn();
+                $this->conn->commit();
+                return $r;
+            } catch (\Throwable $e) {
+                $this->conn->rollback();
+                throw $e;
+            }
+        }
+        $this->conn->beginTransaction();
+        try {
+            $r = $fn();
+            $this->conn->commit();
+            return $r;
+        } catch (\Throwable $e) {
+            if ($this->conn->inTransaction()) $this->conn->rollBack();
+            throw $e;
+        }
+    }
+    /** CREATE TABLE statement, or null when $table is a view. */
+    public function showCreateTable($table) {
+        $res = $this->executeQuery('SHOW CREATE TABLE ' . $this->quoteIdent($table));
+        $row = $res['rows'][0] ?? null;
+        return $row['Create Table'] ?? null;
     }
     public function getDatabaseStructure() {
         if ($this->useMysqli) {

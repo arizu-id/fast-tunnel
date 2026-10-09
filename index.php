@@ -169,6 +169,7 @@ foreach (array_merge(glob(__DIR__ . '/assets/js/*.js') ?: [], glob(__DIR__ . '/a
         "/assets/js/modules/editor.js": "/assets/js/modules/editor.js?v=<?php echo $assetVer; ?>",
         "/assets/js/modules/context-menu.js": "/assets/js/modules/context-menu.js?v=<?php echo $assetVer; ?>",
         "/assets/js/modules/loading.js": "/assets/js/modules/loading.js?v=<?php echo $assetVer; ?>",
+        "/assets/js/modules/db-tools.js": "/assets/js/modules/db-tools.js?v=<?php echo $assetVer; ?>",
         "/assets/js/modules/api.js": "/assets/js/modules/api.js?v=<?php echo $assetVer; ?>",
         "/assets/js/modules/loading-bar.js": "/assets/js/modules/loading-bar.js?v=<?php echo $assetVer; ?>",
         "/assets/js/modules/crypto.js": "/assets/js/modules/crypto.js?v=<?php echo $assetVer; ?>",

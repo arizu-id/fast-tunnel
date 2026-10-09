@@ -175,7 +175,9 @@ function auditSuccessfulAction(string $action,array $data):void{
 $db=$data['db_name']??'';
 $table=$data['table']??'';
 switch($action){
-case'mysql_drop_database':Audit::log($action,$db);break;
+case'mysql_drop_database':
+case'mysql_create_database':Audit::log($action,$db);break;
+case'mysql_create_table':Audit::log($action,"$db.$table");break;
 case'mysql_drop_table':
 case'mysql_truncate_table':Audit::log($action,"$db.$table");break;
 case'mysql_drop_columns':Audit::log($action,"$db.$table",implode(',',(array)($data['columns']??[])));break;
@@ -232,4 +234,38 @@ if(!empty($data['pk_column'])&&!empty($data['pk_values'])&&is_array($data['pk_va
 return array_map(fn($v)=>[$data['pk_column']=>$v],array_values($data['pk_values']));
 }
 return[];
+}
+
+/**
+ * Connection to the MySQL server without selecting a database (for CREATE/DROP DATABASE).
+ */
+function getConnectedMysqlServer(): \App\MysqlClient {
+    if (!isset($_SESSION['mysql_auth'])) {
+        throw new Exception("Not connected to MySQL.");
+    }
+    $auth = $_SESSION['mysql_auth'];
+    return new \App\MysqlClient($auth['host'], $auth['port'], $auth['user'], Auth::decrypt($auth['password_enc']), '');
+}
+/**
+ * Column definition fragment ("`name` TYPE(len) NULL DEFAULT ... AUTO_INCREMENT") from request data.
+ */
+function buildColumnDefinition(array $c): string {
+    $def = sanitizeIdentifier((string)($c['name'] ?? '')) . ' ' . ($type = sanitizeColumnType((string)($c['type'] ?? '')));
+    $len = sanitizeColumnLength((string)($c['length'] ?? ''));
+    if ($len !== '' && in_array($type, ['VARCHAR', 'CHAR', 'INT', 'TINYINT', 'SMALLINT', 'BIGINT', 'DECIMAL', 'FLOAT', 'DOUBLE'])) {
+        $def .= "($len)";
+    }
+    $def .= (isset($c['nullable']) ? (bool)$c['nullable'] : true) ? ' NULL' : ' NOT NULL';
+    $defaultType = $c['default_type'] ?? 'NONE';
+    if ($defaultType === 'NULL') {
+        $def .= ' DEFAULT NULL';
+    } elseif ($defaultType === 'CURRENT_TIMESTAMP') {
+        $def .= ' DEFAULT CURRENT_TIMESTAMP';
+    } elseif ($defaultType === 'USER_DEFINED') {
+        $val = (string)($c['default_value'] ?? '');
+        if (strpos($val, "\0") !== false) throw new Exception("Invalid default value");
+        $def .= " DEFAULT '" . str_replace(['\\', "'"], ['\\\\', "''"], $val) . "'";
+    }
+    if (!empty($c['ai'])) $def .= ' AUTO_INCREMENT';
+    return $def;
 }

@@ -22,6 +22,9 @@ export function escapeHtml(text) {
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;');
 }
+export function escapeAttr(text) {
+    return String(text ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
 export function switchDbTab(tab) {
     $('.db-tab-btn').removeClass('active');
     $(`.db-tab-btn[data-tab="${tab}"]`).addClass('active');
