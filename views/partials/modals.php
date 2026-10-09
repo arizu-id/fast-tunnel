@@ -156,6 +156,7 @@
                         <label class="form-label small text-muted text-uppercase fw-semibold tracking-wide" data-i18n="protocol">Protocol</label>
                         <select class="form-select bg-darker text-light border-secondary" id="sessionProtocol" name="protocol" style="border-radius: 8px;">
                             <option value="ftp" data-i18n="ftp_connection">FTP Connection</option>
+                            <option value="sftp">SFTP Connection (over SSH)</option>
                             <option value="mysql" data-i18n="mysql_client">MySQL Client (phpMyAdmin style)</option>
                             <option value="ssh" data-i18n="web_ssh_client">Web SSH Client</option>
                         </select>

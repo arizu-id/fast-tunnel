@@ -123,7 +123,13 @@ $(document).ready(function() {
     $('#sessionProtocol').change(function() {
         const proto = $(this).val();
         $('.protocol-group').addClass('d-none');
-        if (proto === 'ftp') $('#ftpFormFields').removeClass('d-none');
+        if (proto === 'ftp' || proto === 'sftp') {
+            $('#ftpFormFields').removeClass('d-none');
+            const $port = $('#ftpFormFields input[name="port"]');
+            // switch the default port only if the user hasn't typed a custom one
+            if (proto === 'sftp' && String($port.val()) === '21') $port.val(22);
+            if (proto === 'ftp' && String($port.val()) === '22') $port.val(21);
+        }
         else if (proto === 'mysql') $('#mysqlFormFields').removeClass('d-none');
         else if (proto === 'ssh') $('#sshFormFields').removeClass('d-none');
     });

@@ -1086,3 +1086,16 @@ tr.ft-loading > td:first-child::after {
     opacity: 1;
 }
 tr.ft-loading::after { display: none; }
+
+/* ── File manager: multi-select + upload queue ── */
+.tree-row.multi-selected { background: rgba(59,130,246,0.25) !important; box-shadow: inset 2px 0 0 #3b82f6; }
+.upload-queue-panel {
+    position: fixed; right: 16px; bottom: 16px; width: 340px; max-width: calc(100vw - 32px);
+    background: #1e1e24; border: 1px solid #3f3f46; border-radius: 12px; z-index: 1080;
+    box-shadow: 0 12px 40px rgba(0,0,0,.5); overflow: hidden; color: #e4e4e7;
+}
+.upload-queue-panel .uq-header { background: #18181b; border-bottom: 1px solid #3f3f46; }
+.upload-queue-panel .uq-body { max-height: 260px; overflow-y: auto; }
+.upload-queue-panel .uq-row { padding: 8px 12px; border-bottom: 1px solid rgba(255,255,255,.05); }
+.upload-queue-panel .uq-row:last-child { border-bottom: 0; }
+.search-hit:hover { background: rgba(255,255,255,.06); }

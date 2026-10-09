@@ -10,7 +10,21 @@
             </div>
         </div>
         <div class="p-1 px-3 small text-truncate text-muted border-bottom border-secondary bg-dark font-monospace" id="currentPath" title="/">/</div>
-        <div class="flex-grow-1 overflow-auto file-list py-2" id="fileList">
+        <div class="p-2 border-bottom border-secondary bg-dark position-relative" id="ftpSearchBox">
+            <i class="bi bi-search position-absolute text-muted" style="left:18px;top:50%;transform:translateY(-50%);font-size:.8rem;pointer-events:none;"></i>
+            <input type="text" class="form-control form-control-sm bg-darker text-light border-secondary shadow-none" id="ftpSearchInput" placeholder="Search files &amp; folders…" autocomplete="off" style="padding-left:30px;padding-right:30px;" title="Searches by name in all folders">
+            <button class="btn btn-sm btn-icon d-none position-absolute text-muted" id="ftpSearchClear" style="right:12px;top:50%;transform:translateY(-50%);padding:0 4px;" title="Clear search"><i class="bi bi-x-lg"></i></button>
+        </div>
+        <div id="ftpSelectionBar" class="d-none align-items-center gap-1 px-2 py-1 border-bottom border-secondary" style="background:rgba(59,130,246,0.1);">
+            <i class="bi bi-check2-square text-primary"></i>
+            <span class="small text-primary fw-bold flex-grow-1" id="ftpSelectionCount">0 selected</span>
+            <button class="btn btn-sm btn-icon text-info" id="btnSelDownload" title="Download as ZIP"><i class="bi bi-file-earmark-zip"></i></button>
+            <button class="btn btn-sm btn-icon text-warning" id="btnSelMove" title="Move to folder…"><i class="bi bi-folder-symlink"></i></button>
+            <button class="btn btn-sm btn-icon text-danger" id="btnSelDelete" title="Delete selected"><i class="bi bi-trash3"></i></button>
+            <button class="btn btn-sm btn-icon text-muted" id="btnSelClear" title="Clear selection (Esc)"><i class="bi bi-x-lg"></i></button>
+        </div>
+        <div class="flex-grow-1 overflow-auto file-list py-2 d-none" id="fileSearchResults"></div>
+        <div class="flex-grow-1 overflow-auto file-list py-2" id="fileList" title="Ctrl/Cmd+click or Shift+click to select several items">
         </div>
     </div>
 

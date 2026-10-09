@@ -3,6 +3,7 @@ import { selectItem, getParentPath } from './helpers.js';
 import { showToast, showConfirmModal, promptInput } from './ui.js';
 import { api } from './api.js';
 import { setLoading, withLoading } from './loading.js';
+import { configureFileTools, enqueueUploads, collectDropped, initMultiSelect, initSearch, moveMany, dragPaths, resetFileTools } from './file-tools.js';
 import { openFile, closeTab, getFileIconClass, renderTabs, switchTab } from './editor.js';
 export function connectSession(id, sessionData) {
     if (state.isConnecting) {
@@ -10,7 +11,8 @@ export function connectSession(id, sessionData) {
         return;
     }
     state.isConnecting = true;
-    state.currentProtocol = 'ftp';
+    const isSftp = sessionData.protocol === 'sftp';
+    state.currentProtocol = isSftp ? 'sftp' : 'ftp';
     $('#connectionStatus').html(`<span class="text-info"><i class="bi bi-arrow-repeat spin me-2 d-inline-block"></i>Connecting to ${sessionData.name}...</span>`);
     $('.session-item').addClass('pe-none opacity-50');
     setLoading($('.session-item.active'), true);
@@ -20,6 +22,7 @@ export function connectSession(id, sessionData) {
         contentType: 'application/json',
         dataType: 'json',
         data: JSON.stringify({
+            protocol: isSftp ? 'sftp' : 'ftp',
             host: sessionData.host,
             port: sessionData.port,
             user: sessionData.user,
@@ -85,6 +88,7 @@ export function disconnectUI() {
     renderTabs();
     switchTab(null);
     $('#fileList').empty();
+    resetFileTools();
 }
 function renderTreeItems(files, $container, parentPath) {
     if (!files || files.length === 0) {
@@ -127,16 +131,7 @@ function renderTreeItems(files, $container, parentPath) {
                 e.preventDefault();
                 e.stopPropagation();
                 $item.removeClass('drag-hover');
-                
-                const files = e.originalEvent.dataTransfer.files;
-                if (files && files.length > 0) {
-                    uploadFiles(files, fullPath);
-                } else {
-                    const sourcePath = e.originalEvent.dataTransfer.getData('text/plain');
-                    const itemType = e.originalEvent.dataTransfer.getData('item-type');
-                    if (!sourcePath) return;
-                    moveItem(sourcePath, fullPath, itemType === 'dir');
-                }
+                handleDrop(e.originalEvent.dataTransfer, fullPath);
             });
         } else {
             const iconClass = getFileIconClass(item.name);
@@ -160,6 +155,7 @@ function renderTreeItems(files, $container, parentPath) {
             e.stopPropagation();
             e.originalEvent.dataTransfer.setData('text/plain', fullPath);
             e.originalEvent.dataTransfer.setData('item-type', item.isDir ? 'dir' : 'file');
+            e.originalEvent.dataTransfer.setData('multi', JSON.stringify(dragPaths(fullPath)));
             $item.addClass('dragging');
         });
         $item.on('dragend', function(e) {
@@ -304,7 +300,7 @@ export function deleteItem(path, isDir) {
     const itemType = isDir ? 'folder' : 'file';
     showConfirmModal(
         `Delete ${isDir ? 'Folder' : 'File'}`,
-        `Are you sure you want to delete this ${itemType} "${path}"?`,
+        `Are you sure you want to delete this ${itemType} "${path}"?${isDir ? ' Everything inside it will be deleted too.' : ''}`,
         'Delete',
         'btn-danger',
         function() {
@@ -357,38 +353,63 @@ export function moveItem(sourcePath, destFolder, isDir) {
 
 export function uploadFiles(files, destFolder) {
     if (!files || files.length === 0) return;
-    const formData = new FormData();
-    formData.append('dir', destFolder);
-    for (let i = 0; i < files.length; i++) {
-        formData.append('files[]', files[i]);
+    enqueueUploads(Array.from(files).map(f => ({ file: f, relDir: '' })), destFolder);
+}
+
+/** Drop onto a folder (or the tree root): upload dropped files/folders, or move dragged tree items. */
+function handleDrop(dt, destFolder) {
+    if (dt.files && dt.files.length > 0) {
+        collectDropped(dt).then(entries => enqueueUploads(entries, destFolder)).catch(() => showToast('Could not read the dropped items', 'danger'));
+        return;
     }
-    showToast(`Uploading ${files.length} file(s)...`, 'info');
-    const $target = folderTarget(destFolder);
-    setLoading($target, true);
-    $.ajax({
-        url: '/api/upload',
-        type: 'POST',
-        data: formData,
-        processData: false,
-        contentType: false,
-        success: function(res) {
-            if (res.success) {
-                showToast('Uploaded successfully', 'success');
-                expandAndRefreshFolder(destFolder);
-            } else {
-                showToast(res.error || 'Upload failed', 'danger');
-            }
-        },
-        error: function(xhr) {
-            let msg = 'Upload failed';
-            try { msg = JSON.parse(xhr.responseText).error || msg; } catch(e) {}
-            showToast(msg, 'danger');
-        },
-        complete: function() { setLoading($target, false); }
-    });
+    let multi = [];
+    try { multi = JSON.parse(dt.getData('multi') || '[]'); } catch (e) { /* ignore */ }
+    if (multi.length > 1) {
+        moveMany(multi, destFolder);
+        return;
+    }
+    const sourcePath = dt.getData('text/plain');
+    if (!sourcePath) return;
+    moveItem(sourcePath, destFolder, dt.getData('item-type') === 'dir');
+}
+
+/** Expand the tree down to `path` and select it (used by search results). */
+export async function revealPath(path) {
+    const wait = async (cond, ms) => { for (let t = 0; t < ms / 50 && !cond(); t++) await new Promise(r => setTimeout(r, 50)); };
+    const parts = path.split('/').filter(Boolean);
+    let cur = '';
+    for (let i = 0; i < parts.length; i++) {
+        cur += '/' + parts[i];
+        const $item = $('.tree-item').filter((_, el) => $(el).attr('data-path') === cur).first();
+        if (!$item.length) return;
+        const $children = $item.find('.tree-children').first();
+        if ($item.attr('data-is-dir') === 'true' && $item.attr('data-expanded') !== 'true') {
+            toggleFolder(cur, $item, $children);
+            await wait(() => $children.children().length > 0 && $children.find('.spin').length === 0, 5000);
+        }
+        if (i === parts.length - 1) {
+            selectItem(cur, $item.attr('data-is-dir') === 'true');
+            $item[0].scrollIntoView({ block: 'center' });
+        }
+    }
 }
 
 $(document).ready(function() {
+    configureFileTools({
+        refreshFolder: expandAndRefreshFolder,
+        folderTarget: folderTarget,
+        closePaths: paths => {
+            paths.forEach(p => {
+                const prefix = p.endsWith('/') ? p : p + '/';
+                state.openTabs.filter(t => t.path === p || t.path.startsWith(prefix)).forEach(t => closeTab(t.path));
+            });
+        },
+        openFile: openFile,
+        reveal: revealPath,
+        parentOf: getParentPath,
+    });
+    initMultiSelect();
+    initSearch();
     const $fileList = $('#fileList');
     $fileList.on('dragover', function(e) {
         e.preventDefault();
@@ -403,15 +424,6 @@ $(document).ready(function() {
         if ($(e.target).closest('.folder-item').length > 0) {
             return;
         }
-        const files = e.originalEvent.dataTransfer.files;
-        const destFolder = state.currentPath || '/';
-        if (files && files.length > 0) {
-            uploadFiles(files, destFolder);
-        } else {
-            const sourcePath = e.originalEvent.dataTransfer.getData('text/plain');
-            const itemType = e.originalEvent.dataTransfer.getData('item-type');
-            if (!sourcePath) return;
-            moveItem(sourcePath, destFolder, itemType === 'dir');
-        }
+        handleDrop(e.originalEvent.dataTransfer, state.currentPath || '/');
     });
 });

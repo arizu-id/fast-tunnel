@@ -3,6 +3,7 @@ import { selectItem, getParentPath } from './helpers.js';
 import { promptInput } from './ui.js';
 import { toggleFolder, expandAndRefreshFolder, createNewFile, createNewFolder, renameItem, deleteItem } from './ftp.js';
 import { openFile } from './editor.js';
+import { downloadZip } from './file-tools.js';
 import { editSession, deleteSession, exportSingleSession } from './sessions.js';
 
 export function ctxIcon(biClass, extraClass) {
@@ -69,6 +70,15 @@ export function initContextMenu() {
                     callback: function() {
                         state.uploadDestFolder = getParentPath(path);
                         $('#fileUploadInput').trigger('click');
+                    }
+                };
+            }
+            if (isDir) {
+                items.download_zip = {
+                    name: `${ctxIcon('bi-file-earmark-zip')} Download as ZIP`,
+                    isHtmlName: true,
+                    callback: function() {
+                        downloadZip([{ path: path, isDir: true }], $trigger.children('.tree-row').first());
                     }
                 };
             }

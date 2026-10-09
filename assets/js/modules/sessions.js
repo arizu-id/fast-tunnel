@@ -43,7 +43,7 @@ function renderSessionList(sessions) {
     }
     sessions.forEach(session => {
         const proto = session.protocol || 'ftp';
-        const protocolIcon = proto === 'mysql' ? 'bi-database' : proto === 'ssh' ? 'bi-terminal' : 'bi-hdd-network';
+        const protocolIcon = proto === 'mysql' ? 'bi-database' : proto === 'ssh' ? 'bi-terminal' : proto === 'sftp' ? 'bi-shield-lock' : 'bi-hdd-network';
         const protocolColor = proto === 'mysql' ? 'text-warning' : proto === 'ssh' ? 'text-success' : 'text-info';
         const item = $(`
             <div class="session-item d-flex justify-content-between align-items-center" data-id="${session.id}">
@@ -65,7 +65,7 @@ function renderSessionList(sessions) {
             if (!$(e.target).closest('.btn-delete-session').length) {
                 $('.session-item').removeClass('active');
                 $(this).addClass('active');
-                if (proto === 'ftp') {
+                if (proto === 'ftp' || proto === 'sftp') {
                     connectSession(session.id, session);
                 } else if (proto === 'mysql') {
                     connectMysql(session.id, session);
@@ -89,7 +89,7 @@ export function saveSession() {
     let user = '';
     let password = '';
     let db_name = '';
-    if (protocol === 'ftp') {
+    if (protocol === 'ftp' || protocol === 'sftp') {
         host = $('input[name="host"]').val();
         port = $('input[name="port"]').val();
         user = $('input[name="user"]').val();
@@ -170,7 +170,7 @@ export function editSession(id) {
     $('#editSessionProtocol').val(proto);
     $('#editSessionName').val(session.name || '');
     $('.edit-protocol-group').addClass('d-none');
-    if (proto === 'ftp') {
+    if (proto === 'ftp' || proto === 'sftp') {
         $('#editFtpFields').removeClass('d-none');
         $('#editFtpHost').val(session.host || '');
         $('#editFtpPort').val(session.port || 21);
@@ -210,9 +210,9 @@ function saveEditSession() {
     const proto = session.protocol || 'ftp';
     const name = $('#editSessionName').val().trim();
     let host, port, user, password, dbName;
-    if (proto === 'ftp') {
+    if (proto === 'ftp' || proto === 'sftp') {
         host = $('#editFtpHost').val().trim();
-        port = parseInt($('#editFtpPort').val()) || 21;
+        port = parseInt($('#editFtpPort').val()) || (proto === 'sftp' ? 22 : 21);
         user = $('#editFtpUser').val().trim();
         password = $('#editFtpPassword').val();
     } else if (proto === 'mysql') {
