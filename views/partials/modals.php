@@ -484,6 +484,46 @@
                         </div>
                     </div>
                 </form>
+                <hr class="border-secondary my-4">
+                <div id="twofaSection">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <label class="form-label small text-muted text-uppercase fw-semibold tracking-wide mb-0"><i class="bi bi-phone me-1"></i>Two-factor authentication</label>
+                        <span class="badge bg-secondary" id="twofaBadge">…</span>
+                    </div>
+                    <div id="twofaOff" class="d-none">
+                        <p class="small text-muted mb-2">Require a code from an authenticator app (Google Authenticator, Authy, 1Password…) in addition to your password.</p>
+                        <button type="button" class="btn btn-sm btn-outline-success" id="btnTwofaStart"><i class="bi bi-shield-plus me-1"></i>Enable 2FA</button>
+                    </div>
+                    <div id="twofaSetup" class="d-none">
+                        <p class="small text-muted mb-2">1. Scan this QR code with your authenticator app (or type the key by hand).</p>
+                        <div class="d-flex flex-column align-items-center gap-2 mb-3">
+                            <div id="twofaQr" style="background:#fff;padding:8px;border-radius:8px;line-height:0;"></div>
+                            <code class="small user-select-all text-break text-center" id="twofaSecret"></code>
+                        </div>
+                        <p class="small text-muted mb-2">2. Enter the 6-digit code it shows to confirm.</p>
+                        <div class="input-group mb-2">
+                            <input type="text" class="form-control bg-darker text-light border-secondary shadow-none" id="twofaCode" placeholder="123456" inputmode="numeric" maxlength="7" autocomplete="one-time-code">
+                            <button type="button" class="btn btn-success" id="btnTwofaVerify">Verify &amp; enable</button>
+                            <button type="button" class="btn btn-outline-secondary" id="btnTwofaCancel">Cancel</button>
+                        </div>
+                    </div>
+                    <div id="twofaRecovery" class="d-none">
+                        <div class="alert alert-warning small py-2">Save these recovery codes somewhere safe. Each works once if you lose your phone. <strong>They are shown only now.</strong></div>
+                        <pre class="bg-darker border border-secondary rounded p-2 small text-light user-select-all mb-2" id="twofaCodes" style="columns:2;"></pre>
+                        <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="btnTwofaCopy"><i class="bi bi-clipboard me-1"></i>Copy</button>
+                            <button type="button" class="btn btn-sm btn-success" id="btnTwofaDone">I saved them</button>
+                        </div>
+                    </div>
+                    <div id="twofaOn" class="d-none">
+                        <p class="small text-muted mb-2">2FA is on. To turn it off, confirm your password and a current code (or a recovery code).</p>
+                        <div class="input-group mb-2">
+                            <input type="password" class="form-control bg-darker text-light border-secondary shadow-none" id="twofaDisablePass" placeholder="Password" autocomplete="current-password">
+                            <input type="text" class="form-control bg-darker text-light border-secondary shadow-none" id="twofaDisableCode" placeholder="Code" autocomplete="one-time-code">
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-danger" id="btnTwofaDisable"><i class="bi bi-shield-x me-1"></i>Disable 2FA</button>
+                    </div>
+                </div>
             </div>
             <div class="modal-footer border-secondary" style="background-color: #18181b; padding: 14px 28px;">
                 <button type="button" class="btn btn-sm btn-dark border-secondary px-3" data-bs-dismiss="modal" style="border-radius: 8px;">Cancel</button>

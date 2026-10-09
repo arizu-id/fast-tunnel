@@ -1,0 +1,107 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  lint-unit:
+    name: Lint + unit (PHP ${{ matrix.php }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['7.4', '8.1', '8.3']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: pdo_mysql, zip, curl, openssl, mbstring, ftp
+      - run: composer install --no-interaction --prefer-dist
+      - name: PHP syntax
+        run: |
+          status=0
+          while IFS= read -r -d '' f; do php -l "$f" >/dev/null || status=1; done < <(find . -name '*.php' ! -path './vendor/*' ! -path './node_modules/*' -print0)
+          exit $status
+      - name: Unit tests
+        run: php tests/php/run.php
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: JS syntax
+        run: for f in assets/js/*.js assets/js/modules/*.js plugins/*/plugin.js tests/e2e/*.mjs; do node --check "$f"; done
+
+  integration:
+    name: API integration (${{ matrix.db }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        db: ['mysql:5.7', 'mysql:8.0', 'mariadb:10.11']
+    services:
+      db:
+        image: ${{ matrix.db }}
+        env:
+          MYSQL_ROOT_PASSWORD: rootpw
+          MARIADB_ROOT_PASSWORD: rootpw
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd "mysqladmin ping -prootpw || mariadb-admin ping -prootpw"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: pdo_mysql, zip, curl, openssl, mbstring, ftp
+      - run: composer install --no-interaction --prefer-dist
+      - name: Start SFTP + FTP test servers
+        run: sudo bash tests/integration/setup-servers.sh
+      - name: Run API integration tests
+        env:
+          FT_DB_HOST: 127.0.0.1
+          FT_DB_USER: root
+          FT_DB_PASS: rootpw
+          FT_SFTP_PORT: 2222
+          FT_FTP_PORT: 2121
+          FT_FILE_USER: ftuser
+          FT_FILE_PASS: ftpass123
+        run: php tests/integration/run.php
+
+  e2e:
+    name: Browser tests
+    runs-on: ubuntu-latest
+    services:
+      db:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: rootpw
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd "mysqladmin ping -prootpw"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: pdo_mysql, zip, curl, openssl, mbstring, ftp
+      - run: composer install --no-interaction --prefer-dist
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install --no-audit --no-fund
+      - run: npx playwright install --with-deps chromium
+      - name: MySQL panel (mocked API)
+        run: node tests/e2e/db.e2e.mjs
+      - name: File manager (mocked API)
+        run: node tests/e2e/files.e2e.mjs
+      - name: Full stack (real PHP + MySQL)
+        env:
+          FT_DB_HOST: 127.0.0.1
+          FT_DB_USER: root
+          FT_DB_PASS: rootpw
+        run: node tests/e2e/fullstack.e2e.mjs

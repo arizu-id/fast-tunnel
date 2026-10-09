@@ -253,6 +253,62 @@ $(document).ready(function() {
         });
     });
 
+    // Two-factor authentication (TOTP) settings
+    const twofaShow = id => { $('#twofaOff, #twofaSetup, #twofaRecovery, #twofaOn').addClass('d-none'); $(id).removeClass('d-none'); };
+    function loadTwofaStatus() {
+        $('#twofaBadge').text('…').attr('class', 'badge bg-secondary');
+        return withLoading($('#twofaSection'), api('auth_totp_status'))
+        .then(res => {
+            $('#twofaBadge').text(res.enabled ? 'On' : 'Off').attr('class', 'badge ' + (res.enabled ? 'bg-success' : 'bg-secondary'));
+            twofaShow(res.enabled ? '#twofaOn' : '#twofaOff');
+        })
+        .catch(err => showToast(err.message, 'danger'));
+    }
+    $('#editCredentialsModal').on('show.bs.modal', () => { $('#twofaDisablePass, #twofaDisableCode, #twofaCode').val(''); loadTwofaStatus(); });
+    $('#btnTwofaStart').click(function() {
+        withLoading($(this), api('auth_totp_setup'), { text: 'Preparing...' })
+        .then(res => {
+            const qr = qrcode(0, 'M');
+            qr.addData(res.uri);
+            qr.make();
+            $('#twofaQr').html(qr.createSvgTag({ cellSize: 4, margin: 0, scalable: true }));
+            $('#twofaQr svg').attr({ width: 176, height: 176 });
+            $('#twofaSecret').text(res.secret.replace(/(.{4})/g, '$1 ').trim());
+            $('#twofaCode').val('');
+            twofaShow('#twofaSetup');
+            $('#twofaCode').trigger('focus');
+        })
+        .catch(err => showToast(err.message, 'danger'));
+    });
+    $('#btnTwofaCancel').click(loadTwofaStatus);
+    $('#btnTwofaVerify').click(function() {
+        const code = $('#twofaCode').val().trim();
+        if (!code) { showToast('Enter the 6-digit code', 'danger'); return; }
+        withLoading($(this), api('auth_totp_enable', { code }), { text: 'Verifying...' })
+        .then(res => {
+            $('#twofaCodes').text(res.recovery_codes.join('\n'));
+            twofaShow('#twofaRecovery');
+            $('#twofaBadge').text('On').attr('class', 'badge bg-success');
+            showToast('Two-factor authentication enabled');
+        })
+        .catch(err => showToast(err.message, 'danger'));
+    });
+    $('#btnTwofaCopy').click(function() {
+        const text = $('#twofaCodes').text();
+        (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject())
+            .then(() => showToast('Recovery codes copied'))
+            .catch(() => showToast('Select the codes and copy them manually', 'warning'));
+    });
+    $('#btnTwofaDone').click(() => { $('#twofaCodes').text(''); loadTwofaStatus(); });
+    $('#btnTwofaDisable').click(function() {
+        const password = $('#twofaDisablePass').val();
+        const code = $('#twofaDisableCode').val().trim();
+        if (!password || !code) { showToast('Enter your password and a code', 'danger'); return; }
+        withLoading($(this), api('auth_totp_disable', { password, code }), { text: 'Disabling...' })
+        .then(() => { $('#twofaDisablePass, #twofaDisableCode').val(''); showToast('Two-factor authentication disabled'); return loadTwofaStatus(); })
+        .catch(err => showToast(err.message, 'danger'));
+    });
+
     // Audit log viewer
     function loadAuditLog() {
         const $body = $('#auditLogBody');

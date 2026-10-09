@@ -157,6 +157,7 @@ foreach (array_merge(glob(__DIR__ . '/assets/js/*.js') ?: [], glob(__DIR__ . '/a
     <script src="assets/vendor/xterm/xterm.js"></script>
     <script src="assets/vendor/xterm/xterm-addon-fit.js"></script>
     <script src="assets/vendor/monaco-editor/min/vs/loader.js"></script>
+    <script src="assets/vendor/qrcode/qrcode.js"></script>
     <script type="importmap">
     {
       "imports": {

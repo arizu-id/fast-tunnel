@@ -33,6 +33,7 @@ register_shutdown_function(function () use ($server, $root, $appDb, $dbHost, $db
 });
 for ($i = 0; $i < 50; $i++) { if (@fsockopen('127.0.0.1', $port)) break; usleep(100000); }
 
+require_once $root . '/backend/Totp.php';
 $jar = tempnam(sys_get_temp_dir(), 'ftjar');
 $csrf = '';
 function http(string $method, string $url, $body = null, array $headers = [], bool $json = true): array {
@@ -68,12 +69,28 @@ $r = http('POST', "$base/install/setup.php", ['db_host' => $dbHost, 'db_port' =>
 check('installer succeeds', ($r['json']['success'] ?? false) === true, $r['text']);
 check('config.php generated without CSRF_SECRET', file_exists("$root/config.php") && strpos(file_get_contents("$root/config.php"), 'CSRF_SECRET') === false);
 
+
+// ---- upgrade from an old schema (no audit_log/app_meta/totp columns, ENUM without sftp) ----
+$pdo = new PDO("mysql:host=$dbHost;port=$dbPort;dbname=$appDb", $dbUser, $dbPass, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
+$pdo->exec("ALTER TABLE users DROP COLUMN totp_secret, DROP COLUMN totp_enabled, DROP COLUMN totp_last_step, DROP COLUMN totp_recovery");
+$pdo->exec("DROP TABLE audit_log");
+$pdo->exec("DROP TABLE IF EXISTS app_meta");
+$pdo->exec("ALTER TABLE saved_sessions MODIFY protocol ENUM('ftp','ssh','mysql') NOT NULL");
+
 // ---- auth ----
 $r = http('POST', "$base/api/auth_login", ['username' => 'admin', 'password' => 'wrong']);
 check('wrong password rejected', !ok($r));
 $r = http('POST', "$base/api/auth_login", ['username' => 'admin', 'password' => $admin['admin_pass']]);
-check('login ok', ok($r), $r['text']);
+check('login ok on an old schema (auto-upgrade runs first)', ok($r), $r['text']);
 $csrf = $r['json']['csrf_token'] ?? '';
+$cols = $pdo->query("SHOW COLUMNS FROM users")->fetchAll(PDO::FETCH_COLUMN);
+check('migration added the 2FA columns', in_array('totp_secret', $cols) && in_array('totp_recovery', $cols) && in_array('totp_last_step', $cols));
+check('migration created audit_log and recorded the schema version', (int)$pdo->query("SELECT v FROM app_meta WHERE k='schema_version'")->fetchColumn() >= 4 && $pdo->query("SHOW TABLES LIKE 'audit_log'")->fetch() !== false);
+$r = api('sessions_create', ['protocol' => 'sftp', 'name' => 'sftp-it', 'host' => 'example.org', 'port' => 22, 'user' => 'u', 'password' => 'p']);
+check('SFTP sessions can be saved after the migration', ok($r), $r['text']);
+$list = api('sessions_list')['json']['sessions'] ?? [];
+check('saved SFTP session round-trips with its protocol', count(array_filter($list, fn($x) => $x['protocol'] === 'sftp' && $x['name'] === 'sftp-it')) === 1);
+foreach ($list as $x) api('sessions_delete', ['id' => $x['id']]);
 $r = http('POST', "$base/api/mysql_connect", ['host' => $dbHost], [], true);
 $noCsrf = (function () use ($base, $jar) { global $csrf; $keep = $csrf; $csrf = ''; $x = http('POST', "$base/api/mysql_list_tables", []); $csrf = $keep; return $x; })();
 check('POST without CSRF token is rejected (403)', $noCsrf['status'] === 403);
@@ -274,14 +291,65 @@ function testFiles(string $label, string $proto, string $host, int $port, string
 if (getenv('FT_SFTP_PORT')) testFiles('sftp', 'sftp', '127.0.0.1', (int)getenv('FT_SFTP_PORT'), getenv('FT_FILE_USER'), getenv('FT_FILE_PASS'));
 if (getenv('FT_FTP_PORT')) testFiles('ftp', 'ftp', '127.0.0.1', (int)getenv('FT_FTP_PORT'), getenv('FT_FILE_USER'), getenv('FT_FILE_PASS'));
 
+// ---- two-factor authentication ----
+$r = api('auth_totp_status');
+check('2FA initially disabled', ok($r) && $r['json']['enabled'] === false);
+$r = api('auth_totp_setup');
+check('2FA setup returns secret + otpauth URI', ok($r) && strlen($r['json']['secret']) >= 16 && strpos($r['json']['uri'], 'otpauth://totp/Fast%20Tunnel:admin?secret=' . $r['json']['secret']) === 0, $r['text']);
+$secret = $r['json']['secret'] ?? '';
+check('enable with a wrong code is refused', !ok(api('auth_totp_enable', ['code' => '000000'])) || Totp::verify($secret, '000000') !== null);
+$r = api('auth_totp_enable', ['code' => Totp::code($secret, Totp::currentStep())]);
+check('enable with a valid code returns 8 recovery codes', ok($r) && count($r['json']['recovery_codes']) === 8, $r['text']);
+$recovery = $r['json']['recovery_codes'] ?? [];
+$stored = $pdo->query("SELECT totp_secret, totp_recovery FROM users WHERE username='admin'")->fetch();
+check('secret is stored encrypted, recovery codes only as hashes', $stored['totp_secret'] !== $secret && strpos($stored['totp_recovery'], $recovery[0]) === false && strlen(json_decode($stored['totp_recovery'])[0]) === 64);
+http('POST', "$base/api/auth_logout", []);
+$csrf = '';
+$r = http('POST', "$base/api/auth_login", ['username' => 'admin', 'password' => $admin['admin_pass']]);
+check('login with only a password now asks for the 2FA code', ($r['json']['need_totp'] ?? false) === true && !ok($r), $r['text']);
+$r = http('POST', "$base/api/mysql_list_tables", []);
+check('...and no session was created', $r['status'] === 401);
+$r = http('POST', "$base/api/auth_login", ['username' => 'admin', 'password' => $admin['admin_pass'], 'totp' => '123456']);
+check('wrong 2FA code rejected', !ok($r) && strpos(err($r), 'two-factor') !== false, err($r));
+$step = Totp::currentStep();
+$code = Totp::code($secret, $step + 1);   // next window is within the +-1 tolerance
+$r = http('POST', "$base/api/auth_login", ['username' => 'admin', 'password' => $admin['admin_pass'], 'totp' => $code]);
+check('correct 2FA code logs in (clock-drift window)', ok($r), $r['text']);
+$csrf = $r['json']['csrf_token'] ?? '';
+http('POST', "$base/api/auth_logout", []);
+$csrf = '';
+$r = http('POST', "$base/api/auth_login", ['username' => 'admin', 'password' => $admin['admin_pass'], 'totp' => $code]);
+check('the same code cannot be replayed', !ok($r), $r['text']);
+$r = http('POST', "$base/api/auth_login", ['username' => 'admin', 'password' => $admin['admin_pass'], 'totp' => $recovery[0]]);
+check('a recovery code logs in', ok($r), $r['text']);
+$csrf = $r['json']['csrf_token'] ?? '';
+http('POST', "$base/api/auth_logout", []);
+$csrf = '';
+$r = http('POST', "$base/api/auth_login", ['username' => 'admin', 'password' => $admin['admin_pass'], 'totp' => $recovery[0]]);
+check('a recovery code works only once', !ok($r), $r['text']);
+$r = http('POST', "$base/api/auth_login", ['username' => 'admin', 'password' => $admin['admin_pass'], 'totp' => strtoupper($recovery[1]) . ' ']);
+check('recovery codes are case/space tolerant', ok($r), $r['text']);
+$csrf = $r['json']['csrf_token'] ?? '';
+check('disabling 2FA needs the password', !ok(api('auth_totp_disable', ['password' => 'wrong', 'code' => $recovery[2]])));
+check('disabling 2FA needs a valid code', !ok(api('auth_totp_disable', ['password' => $admin['admin_pass'], 'code' => '999999'])));
+$r = api('auth_totp_disable', ['password' => $admin['admin_pass'], 'code' => $recovery[2]]);
+check('disable with password + recovery code', ok($r), $r['text']);
+check('2FA data wiped', (int)$pdo->query("SELECT totp_enabled FROM users WHERE username='admin'")->fetchColumn() === 0 && $pdo->query("SELECT totp_secret FROM users WHERE username='admin'")->fetchColumn() === null);
+http('POST', "$base/api/auth_logout", []);
+$csrf = '';
+$r = http('POST', "$base/api/auth_login", ['username' => 'admin', 'password' => $admin['admin_pass']]);
+check('password-only login works again after disabling', ok($r), $r['text']);
+$csrf = $r['json']['csrf_token'] ?? '';
+
 // audit trail
 $r = api('auth_audit_list', ['limit' => 200]);
 $actions = array_column($r['json']['entries'] ?? [], 'action');
-foreach (['auth_login_failed', 'ftp_delete', 'ftp_move', 'ftp_download_zip', 'auth_login', 'mysql_create_database', 'mysql_create_table', 'mysql_export', 'mysql_import', 'mysql_drop_columns', 'mysql_truncate_table', 'mysql_drop_table', 'mysql_drop_database', 'mysql_delete_rows', 'mysql_run_query'] as $a) {
+foreach (['totp_enable', 'totp_disable', 'auth_login_failed', 'ftp_delete', 'ftp_move', 'ftp_download_zip', 'auth_login', 'mysql_create_database', 'mysql_create_table', 'mysql_export', 'mysql_import', 'mysql_drop_columns', 'mysql_truncate_table', 'mysql_drop_table', 'mysql_drop_database', 'mysql_delete_rows', 'mysql_run_query'] as $a) {
     check("audit log has $a", in_array($a, $actions, true));
 }
 check('audit log does not log plain SELECT queries', count(array_filter($r['json']['entries'], fn($e) => $e['action'] === 'mysql_run_query' && stripos($e['detail'] ?? '', 'SELECT') === 0)) === 0);
 check('audit entries carry user + ip', ($r['json']['entries'][0]['username'] ?? '') === 'admin' && ($r['json']['entries'][0]['ip_address'] ?? '') !== '');
+
 
 // logout / unauthenticated access
 http('POST', "$base/api/auth_logout", []);

@@ -55,6 +55,8 @@ try {
         password_hash VARCHAR(255) NOT NULL,
         totp_secret VARCHAR(255) NULL,
         totp_enabled TINYINT(1) NOT NULL DEFAULT 0,
+        totp_last_step BIGINT NOT NULL DEFAULT 0,
+        totp_recovery TEXT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     ) ENGINE=InnoDB");
 

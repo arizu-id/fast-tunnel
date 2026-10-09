@@ -5,7 +5,7 @@
  * Runs at most once per login session (cached in $_SESSION) and never breaks a request on failure.
  */
 class Migrations{
-public const VERSION=3;
+public const VERSION=4;
 public static function ensure():void{
 if(($_SESSION['schema_ver']??0)>=self::VERSION)return;
 try{
@@ -36,6 +36,10 @@ $db->exec("ALTER TABLE saved_sessions MODIFY protocol ENUM('ftp','sftp','ssh','m
 // 3: two-factor authentication
 if(!$db->query("SHOW COLUMNS FROM users LIKE 'totp_secret'")->fetch()){
 $db->exec("ALTER TABLE users ADD COLUMN totp_secret VARCHAR(255) NULL, ADD COLUMN totp_enabled TINYINT(1) NOT NULL DEFAULT 0");
+}
+// 4: replay protection + recovery codes for 2FA
+if(!$db->query("SHOW COLUMNS FROM users LIKE 'totp_last_step'")->fetch()){
+$db->exec("ALTER TABLE users ADD COLUMN totp_last_step BIGINT NOT NULL DEFAULT 0, ADD COLUMN totp_recovery TEXT NULL");
 }
 $db->prepare("REPLACE INTO app_meta(k,v)VALUES('schema_version',?)")->execute([(string)self::VERSION]);
 }

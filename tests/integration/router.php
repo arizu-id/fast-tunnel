@@ -7,6 +7,7 @@ if (preg_match('#^/api/([^/]+)$#', $path, $m)) {
     require $root . '/api.php';
     return true;
 }
+if ($path === '/logout') { $_GET['action'] = 'logout'; require $root . '/login.php'; return true; }
 if ($path === '/login') { require $root . '/login.php'; return true; }
 if ($path === '/') { require $root . '/index.php'; return true; }
 if (preg_match('#^/(backend|vendor|temp_ssh)/#', $path) || preg_match('#\.json$#', $path)) { http_response_code(403); return true; }

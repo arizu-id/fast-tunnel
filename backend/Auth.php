@@ -13,15 +13,33 @@ ini_set('session.use_strict_mode','1');
 session_start();
 }
 }
-public static function login(string $username,string $password):bool{
+/**
+ * Returns 'ok', 'invalid' (bad credentials / rate limited), 'totp_required' or 'totp_invalid'.
+ * A correct password without a 2FA code does not count as a failed attempt.
+ */
+public static function login(string $username,string $password,?string $totpCode=null):string{
 $ip=$_SERVER['REMOTE_ADDR']??'0.0.0.0';
-if(self::isRateLimited($ip))return false;
+if(self::isRateLimited($ip))return'invalid';
+Migrations::ensure();
+try{
+$stmt=self::db()->prepare("SELECT id,password_hash,totp_enabled,totp_secret,totp_last_step,totp_recovery FROM users WHERE username=? LIMIT 1");
+$stmt->execute([$username]);
+}catch(\PDOException $e){
+// schema not upgraded yet (e.g. no ALTER privilege): fall back so people can still sign in
 $stmt=self::db()->prepare("SELECT id,password_hash FROM users WHERE username=? LIMIT 1");
 $stmt->execute([$username]);
+}
 $user=$stmt->fetch();
 if(!$user||!password_verify($password,$user['password_hash'])){
 self::recordAttempt($ip);
-return false;
+return'invalid';
+}
+if(!empty($user['totp_enabled'])){
+if($totpCode===null||trim($totpCode)==='')return'totp_required';
+if(!self::consumeSecondFactor($user,$totpCode)){
+self::recordAttempt($ip);
+return'totp_invalid';
+}
 }
 self::clearAttempts($ip);
 session_regenerate_id(true);
@@ -30,7 +48,46 @@ $_SESSION['username']=$username;
 $_SESSION['ip']=$ip;
 $_SESSION['ua']=md5($_SERVER['HTTP_USER_AGENT']??'');
 $_SESSION['csrf_token']=bin2hex(random_bytes(32));
+return'ok';
+}
+/** Accept a TOTP code (once per time step) or a one-time recovery code. */
+private static function consumeSecondFactor(array $user,string $code):bool{
+$secret=self::decrypt($user['totp_secret']);
+$step=Totp::verify($secret,$code,1,(int)$user['totp_last_step']);
+if($step!==null){
+self::db()->prepare("UPDATE users SET totp_last_step=? WHERE id=?")->execute([$step,$user['id']]);
 return true;
+}
+$hashes=json_decode((string)$user['totp_recovery'],true)?:[];
+$h=Totp::hashRecoveryCode($code);
+$i=array_search($h,$hashes,true);
+if($i===false)return false;
+unset($hashes[$i]);
+self::db()->prepare("UPDATE users SET totp_recovery=? WHERE id=?")->execute([json_encode(array_values($hashes)),$user['id']]);
+return true;
+}
+public static function totpEnabled(int $userId):bool{
+$stmt=self::db()->prepare("SELECT totp_enabled FROM users WHERE id=?");
+$stmt->execute([$userId]);
+return (bool)$stmt->fetchColumn();
+}
+/** Turn 2FA on after the user proved they can generate codes. Returns the plain recovery codes (shown once). */
+public static function enableTotp(int $userId,string $secret):array{
+$codes=Totp::generateRecoveryCodes();
+$stmt=self::db()->prepare("UPDATE users SET totp_secret=?,totp_enabled=1,totp_last_step=?,totp_recovery=? WHERE id=?");
+$stmt->execute([self::encrypt($secret),Totp::currentStep(),json_encode(array_map([Totp::class,'hashRecoveryCode'],$codes)),$userId]);
+return $codes;
+}
+public static function disableTotp(int $userId):void{
+self::db()->prepare("UPDATE users SET totp_secret=NULL,totp_enabled=0,totp_last_step=0,totp_recovery=NULL WHERE id=?")->execute([$userId]);
+}
+/** Verify password + current 2FA code/recovery code of the logged-in user (for sensitive changes). */
+public static function confirmIdentity(int $userId,string $password,string $code):bool{
+$stmt=self::db()->prepare("SELECT id,password_hash,totp_enabled,totp_secret,totp_last_step,totp_recovery FROM users WHERE id=?");
+$stmt->execute([$userId]);
+$user=$stmt->fetch();
+if(!$user||!password_verify($password,$user['password_hash']))return false;
+return empty($user['totp_enabled'])||self::consumeSecondFactor($user,$code);
 }
 public static function logout():void{
 $_SESSION=[];

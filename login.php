@@ -58,6 +58,10 @@ body{background:#0a0a0c;font-family:'Inter',sans-serif;min-height:100vh;display:
 <label for="loginPass" data-i18n="password">Password</label>
 <input type="password" id="loginPass" name="password" placeholder="Enter password" autocomplete="current-password" required>
 </div>
+ <div class="form-group" id="totpGroup" style="display:none">
+<label for="loginTotp">Authentication code</label>
+<input type="text" id="loginTotp" name="totp" placeholder="6-digit code or recovery code" autocomplete="one-time-code" inputmode="numeric" autocapitalize="off" spellcheck="false">
+</div>
 <button type="submit" class="btn-login" id="btnLogin" data-i18n="sign_in">Sign In</button>
 </form>
 <div class="login-footer">Fast Tunnel · Arizu Studio</div>
@@ -76,13 +80,21 @@ method:'POST',
 headers:{'Content-Type':'application/json'},
 body:JSON.stringify({
 username:document.getElementById('loginUser').value,
-password:document.getElementById('loginPass').value
+password:document.getElementById('loginPass').value,
+totp:document.getElementById('totpGroup').style.display==='none'?undefined:document.getElementById('loginTotp').value
 })
 })
 .then(r=>r.json())
 .then(res=>{
 if(res.success){
 window.location.href='/';
+}else if(res.need_totp){
+document.getElementById('totpGroup').style.display='block';
+document.getElementById('loginTotp').focus();
+errBox.textContent=res.error;
+errBox.style.display='block';
+btn.disabled=false;
+btn.textContent='Verify & Sign In';
 }else{
 errBox.textContent=res.error||'Login failed';
 errBox.style.display='block';
