@@ -66,7 +66,7 @@ try {
         port INT NOT NULL DEFAULT 21,
         user_enc TEXT NOT NULL,
         pass_enc TEXT NOT NULL,
-        db_name_enc TEXT DEFAULT '',
+        db_name_enc TEXT DEFAULT NULL,
         extra_enc TEXT DEFAULT NULL,
         sort_order INT DEFAULT 0,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

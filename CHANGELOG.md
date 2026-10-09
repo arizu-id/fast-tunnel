@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- Installer: `db_name_enc TEXT DEFAULT ''` failed on MySQL < 8.0.13 / strict MariaDB (`1101 BLOB, TEXT ... can't have a default value`); it is now `DEFAULT NULL`.
 - MySQL client: delete rows, drop table, truncate, drop column(s) and edit row/column buttons had no JavaScript handlers and did nothing. They are now wired up, along with the Structure tab (`selectDatabase`).
 - Added the missing **Drop Database** action (`mysql_drop_database`; system schemas are protected).
 - Table/column identifiers may now contain characters such as `-` (only backticks and control characters are rejected).
