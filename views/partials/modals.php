@@ -774,3 +774,23 @@
         </div>
     </div>
 </div>
+
+<div class="modal fade" id="auditLogModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-xl modal-dialog-scrollable">
+        <div class="modal-content bg-dark text-light border-secondary shadow-lg" style="border-radius: 12px; overflow: hidden;">
+            <div class="modal-header border-secondary bg-darker px-4 py-3">
+                <h5 class="modal-title fw-bold"><i class="bi bi-journal-text text-info me-2"></i>Audit Log</h5>
+                <div class="d-flex align-items-center gap-2">
+                    <button class="btn btn-sm btn-outline-secondary" id="btnRefreshAudit"><i class="bi bi-arrow-clockwise me-1"></i>Refresh</button>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+            </div>
+            <div class="modal-body p-0">
+                <table class="table table-dark table-hover table-sm mb-0" style="font-size:.8rem;">
+                    <thead><tr style="background:#27272a;"><th class="px-3 py-2">Time</th><th class="px-3 py-2">User</th><th class="px-3 py-2">IP</th><th class="px-3 py-2">Action</th><th class="px-3 py-2">Target</th><th class="px-3 py-2">Detail</th></tr></thead>
+                    <tbody id="auditLogBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

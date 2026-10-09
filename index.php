@@ -1,6 +1,7 @@
 <?php
-error_reporting(E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED & ~E_NOTICE & ~E_WARNING);
+error_reporting(E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED);
 ini_set('display_errors','0');
+ini_set('log_errors','1');
 require_once __DIR__.'/config.php';
 require_once __DIR__.'/backend/Auth.php';
 Auth::requireAuth();
@@ -12,6 +13,11 @@ if (is_dir(__DIR__ . '/plugins')) {
         if (strpos($name, 'temp_') === 0) continue;
         $activePlugins[] = $name;
     }
+}
+// Cache-busting version: newest mtime among our own JS/CSS (changes only when a file changes)
+$assetVer = 0;
+foreach (array_merge(glob(__DIR__ . '/assets/js/*.js') ?: [], glob(__DIR__ . '/assets/js/modules/*.js') ?: [], [__DIR__ . '/assets/css/style.css']) as $assetFile) {
+    $assetVer = max($assetVer, (int)@filemtime($assetFile));
 }
 ?>
 <!DOCTYPE html>
@@ -30,7 +36,7 @@ if (is_dir(__DIR__ . '/plugins')) {
     <link rel="stylesheet" href="assets/vendor/bootstrap-icons/bootstrap-icons.min.css">
     <link rel="stylesheet" href="assets/vendor/jquery-contextmenu/jquery.contextMenu.min.css">
     <link rel="stylesheet" href="assets/vendor/xterm/xterm.css">
-    <link rel="stylesheet" href="assets/css/style.css?v=<?php echo time(); ?>">
+    <link rel="stylesheet" href="assets/css/style.css?v=<?php echo $assetVer; ?>">
     <?php
     foreach ($activePlugins as $plugin) {
         if (file_exists(__DIR__ . "/plugins/{$plugin}/plugin.css")) {
@@ -63,6 +69,11 @@ if (is_dir(__DIR__ . '/plugins')) {
                         <li>
                             <button class="dropdown-item d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#editCredentialsModal" id="btnTriggerCredentialsModal">
                                 <i class="bi bi-key text-muted"></i> <span data-i18n="edit_credentials">Edit Credentials</span>
+                            </button>
+                        </li>
+                        <li>
+                            <button class="dropdown-item d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#auditLogModal" id="btnAuditLog">
+                                <i class="bi bi-journal-text text-muted"></i> <span>Audit Log</span>
                             </button>
                         </li>
                         <li><hr class="dropdown-divider border-secondary my-1"></li>
@@ -149,26 +160,26 @@ if (is_dir(__DIR__ . '/plugins')) {
     <script type="importmap">
     {
       "imports": {
-        "/assets/js/app.js": "/assets/js/app.js?v=<?php echo time(); ?>",
-        "/assets/js/modules/state.js": "/assets/js/modules/state.js?v=<?php echo time(); ?>",
-        "/assets/js/modules/helpers.js": "/assets/js/modules/helpers.js?v=<?php echo time(); ?>",
-        "/assets/js/modules/ui.js": "/assets/js/modules/ui.js?v=<?php echo time(); ?>",
-        "/assets/js/modules/sessions.js": "/assets/js/modules/sessions.js?v=<?php echo time(); ?>",
-        "/assets/js/modules/ftp.js": "/assets/js/modules/ftp.js?v=<?php echo time(); ?>",
-        "/assets/js/modules/editor.js": "/assets/js/modules/editor.js?v=<?php echo time(); ?>",
-        "/assets/js/modules/context-menu.js": "/assets/js/modules/context-menu.js?v=<?php echo time(); ?>",
-        "/assets/js/modules/loading.js": "/assets/js/modules/loading.js?v=<?php echo time(); ?>",
-        "/assets/js/modules/api.js": "/assets/js/modules/api.js?v=<?php echo time(); ?>",
-        "/assets/js/modules/loading-bar.js": "/assets/js/modules/loading-bar.js?v=<?php echo time(); ?>",
-        "/assets/js/modules/crypto.js": "/assets/js/modules/crypto.js?v=<?php echo time(); ?>",
-        "/assets/js/modules/db.js": "/assets/js/modules/db.js?v=<?php echo time(); ?>",
-        "/assets/js/modules/ssh.js": "/assets/js/modules/ssh.js?v=<?php echo time(); ?>",
-        "/assets/js/modules/db-helpers.js": "/assets/js/modules/db-helpers.js?v=<?php echo time(); ?>",
-        "/assets/js/modules/tour.js": "/assets/js/modules/tour.js?v=<?php echo time(); ?>"
+        "/assets/js/app.js": "/assets/js/app.js?v=<?php echo $assetVer; ?>",
+        "/assets/js/modules/state.js": "/assets/js/modules/state.js?v=<?php echo $assetVer; ?>",
+        "/assets/js/modules/helpers.js": "/assets/js/modules/helpers.js?v=<?php echo $assetVer; ?>",
+        "/assets/js/modules/ui.js": "/assets/js/modules/ui.js?v=<?php echo $assetVer; ?>",
+        "/assets/js/modules/sessions.js": "/assets/js/modules/sessions.js?v=<?php echo $assetVer; ?>",
+        "/assets/js/modules/ftp.js": "/assets/js/modules/ftp.js?v=<?php echo $assetVer; ?>",
+        "/assets/js/modules/editor.js": "/assets/js/modules/editor.js?v=<?php echo $assetVer; ?>",
+        "/assets/js/modules/context-menu.js": "/assets/js/modules/context-menu.js?v=<?php echo $assetVer; ?>",
+        "/assets/js/modules/loading.js": "/assets/js/modules/loading.js?v=<?php echo $assetVer; ?>",
+        "/assets/js/modules/api.js": "/assets/js/modules/api.js?v=<?php echo $assetVer; ?>",
+        "/assets/js/modules/loading-bar.js": "/assets/js/modules/loading-bar.js?v=<?php echo $assetVer; ?>",
+        "/assets/js/modules/crypto.js": "/assets/js/modules/crypto.js?v=<?php echo $assetVer; ?>",
+        "/assets/js/modules/db.js": "/assets/js/modules/db.js?v=<?php echo $assetVer; ?>",
+        "/assets/js/modules/ssh.js": "/assets/js/modules/ssh.js?v=<?php echo $assetVer; ?>",
+        "/assets/js/modules/db-helpers.js": "/assets/js/modules/db-helpers.js?v=<?php echo $assetVer; ?>",
+        "/assets/js/modules/tour.js": "/assets/js/modules/tour.js?v=<?php echo $assetVer; ?>"
       }
     }
     </script>
-    <script type="module" src="assets/js/app.js?v=<?php echo time(); ?>"></script>
+    <script type="module" src="assets/js/app.js?v=<?php echo $assetVer; ?>"></script>
     <?php
     foreach ($activePlugins as $plugin) {
         if (file_exists(__DIR__ . "/plugins/{$plugin}/plugin.js")) {

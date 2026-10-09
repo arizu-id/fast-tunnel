@@ -1,9 +1,12 @@
 <?php
-error_reporting(E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED & ~E_NOTICE & ~E_WARNING);
+// Never display errors to the client, but keep them in the server log for debugging.
+error_reporting(E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED);
 ini_set('display_errors','0');
+ini_set('log_errors','1');
 require_once __DIR__.'/config.php';
 require_once __DIR__.'/backend/Auth.php';
 require_once __DIR__.'/backend/SessionStore.php';
+require_once __DIR__.'/backend/Audit.php';
 Auth::boot();
 require_once __DIR__.'/vendor/autoload.php';
 require_once __DIR__.'/backend/FtpClient.php';
@@ -42,7 +45,12 @@ require_once __DIR__.'/backend/api_plugins.php';
 }else{
 require_once __DIR__.'/backend/api_ftp.php';
 }
+auditSuccessfulAction($action,$data);
 }catch(Exception$e){
 http_response_code(400);
 echo json_encode(['success'=>false,'error'=>$e->getMessage()]);
+}catch(\Throwable$e){
+error_log('[fast-tunnel] '.get_class($e).': '.$e->getMessage().' in '.$e->getFile().':'.$e->getLine());
+if(!headers_sent()){http_response_code(500);header('Content-Type: application/json');}
+echo json_encode(['success'=>false,'error'=>'Internal server error (see server log)']);
 }

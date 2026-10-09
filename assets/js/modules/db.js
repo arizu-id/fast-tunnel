@@ -117,7 +117,6 @@ function setupDbSidebar(databases, selectedDb) {
                 $children.html('<div class="tree-empty text-muted small ps-2 opacity-50"><i class="bi bi-arrow-repeat spin me-1"></i>Loading...</div>');
                 $children.slideDown(150);
                 currentDb = db;
-                loadDbTables(db, $children);
                 selectDatabase(db);
             }
         });
@@ -127,47 +126,42 @@ function setupDbSidebar(databases, selectedDb) {
         }
     });
 }
-function loadDbTables(db, $container) {
-    return api('mysql_list_tables', { db_name: db })
-    .then(res => {
-        $container.empty();
-        if (!res.tables || res.tables.length === 0) {
-            $container.append('<div class="tree-empty text-muted small ps-2 opacity-50">No tables</div>');
-            return;
-        }
-        res.tables.forEach(table => {
-            const $tblItem = $(`
-                <div class="tree-item file-item db-tree-table" data-db="${db}" data-table="${table}">
-                    <div class="tree-row d-flex align-items-center">
-                        <i class="bi bi-table me-2 text-info" style="font-size:0.85rem;"></i>
-                        <span class="item-name text-truncate flex-grow-1">${escapeHtml(table)}</span>
-                        <button class="btn btn-sm btn-icon text-danger p-0 ms-1 btn-drop-table" title="Drop table"><i class="bi bi-trash3"></i></button>
-                    </div>
+function renderSidebarTables(db, tables, $container) {
+    $container.empty();
+    if (!tables || tables.length === 0) {
+        $container.append('<div class="tree-empty text-muted small ps-2 opacity-50">No tables</div>');
+        return;
+    }
+    tables.forEach(table => {
+        const $tblItem = $(`
+            <div class="tree-item file-item db-tree-table">
+                <div class="tree-row d-flex align-items-center">
+                    <i class="bi bi-table me-2 text-info" style="font-size:0.85rem;"></i>
+                    <span class="item-name text-truncate flex-grow-1"></span>
+                    <button class="btn btn-sm btn-icon text-danger p-0 ms-1 btn-drop-table" title="Drop table"><i class="bi bi-trash3"></i></button>
                 </div>
-            `);
-            $tblItem.find('.btn-drop-table').click(function(e) {
-                e.stopPropagation();
-                dropTable(db, table);
-            });
-            $tblItem.find('.tree-row').click(function(e) {
-                e.stopPropagation();
-                $('.db-tree-table').removeClass('selected');
-                $tblItem.addClass('selected');
-                currentDb = db;
-                currentTable = table;
-                currentPage = 1;
-                setActiveTable(table);
-                switchDbTab('browse');
-                browseTable(table, 1);
-            });
-            $container.append($tblItem);
+            </div>
+        `);
+        $tblItem.attr({ 'data-db': db, 'data-table': table });
+        $tblItem.find('.item-name').text(table);
+        $tblItem.find('.btn-drop-table').click(function(e) {
+            e.stopPropagation();
+            dropTable(db, table);
         });
-    })
-    .catch(() => {
-        $container.empty().append('<div class="tree-empty text-muted small ps-2 opacity-50">Failed to load</div>');
+        $tblItem.find('.tree-row').click(function(e) {
+            e.stopPropagation();
+            $('.db-tree-table').removeClass('selected');
+            $tblItem.addClass('selected');
+            currentDb = db;
+            currentTable = table;
+            currentPage = 1;
+            setActiveTable(table);
+            switchDbTab('browse');
+            browseTable(table, 1);
+        });
+        $container.append($tblItem);
     });
 }
-
 function setupDbWorkspace() {
     $('.db-tab-btn').off('click').on('click', function() {
         const tab = $(this).data('tab');
@@ -411,8 +405,6 @@ function sidebarDbItem(db) {
 
 function refreshCurrentDb() {
     if (!currentDb) return;
-    const $item = sidebarDbItem(currentDb);
-    if ($item.attr('data-expanded') === 'true') loadDbTables(currentDb, $item.find('.tree-children').first());
     selectDatabase(currentDb);
 }
 
@@ -428,6 +420,11 @@ export function selectDatabase(db, $trigger) {
     const work = api('mysql_db_structure', { db_name: db }).then(res => {
         if (currentDb !== db) return;
         const tables = res.tables || [];
+        // one request feeds both the sidebar tree and the Structure tab
+        const $item = sidebarDbItem(db);
+        if ($item.attr('data-expanded') === 'true') {
+            renderSidebarTables(db, tables.map(t => t.Name), $item.find('.tree-children').first());
+        }
         let totalRows = 0, totalSize = 0, html = '';
         tables.forEach(t => {
             const size = (parseInt(t.Data_length) || 0) + (parseInt(t.Index_length) || 0);
@@ -453,6 +450,8 @@ export function selectDatabase(db, $trigger) {
         $('#dbStructureSumSize').text(formatBytes(totalSize));
     }).catch(err => {
         $body.html(`<tr><td colspan="6" class="text-danger p-3">${escapeHtml(err.message)}</td></tr>`);
+        sidebarDbItem(db).find('.tree-children').first()
+            .html('<div class="tree-empty text-muted small ps-2 opacity-50">Failed to load</div>');
     });
     return withLoading($trigger || [], work);
 }
@@ -491,7 +490,7 @@ function dropDatabase(db, $dbItem) {
         `Drop database <strong>${escapeHtml(db)}</strong> and <strong>all of its tables and data</strong>? This cannot be undone.`,
         () => {
             const $row = $dbItem.find('> .tree-row');
-            return withLoading($row, api('mysql_drop_database', { db_name: db }))
+            return withLoading($row, api('mysql_drop_database', { db_name: db, confirm_name: db }))
             .then(res => {
                 $dbItem.slideUp(150, () => $dbItem.remove());
                 if (currentDb === db) {
@@ -507,7 +506,8 @@ function dropDatabase(db, $dbItem) {
                 showToast(`Database "${db}" dropped`);
             })
             .catch(err => showToast(err.message, 'danger'));
-        }
+        },
+        { typeName: db }
     );
 }
 
@@ -550,15 +550,15 @@ function truncateTable(db, table) {
     );
 }
 
+// Resolves to the list of primary-key column names (one or more)
 function getPrimaryKey(table) {
     return api('mysql_table_structure', { table, db_name: currentDb }).then(res => {
-        const pks = (res.columns || []).filter(c => c.Key === 'PRI');
-        if (pks.length !== 1) {
-            throw new Error(pks.length ? 'Composite primary keys are not supported here, use the SQL tab' : 'This table has no primary key, use the SQL tab');
-        }
-        return pks[0].Field;
+        const pks = (res.columns || []).filter(c => c.Key === 'PRI').map(c => c.Field);
+        if (!pks.length) throw new Error('This table has no primary key, use the SQL tab');
+        return pks;
     });
 }
+const pickKey = (row, pks) => Object.fromEntries(pks.map(k => [k, row[k]]));
 
 function selectedBrowseRows() {
     return $('#dbBrowseTbody .db-row-check:checked');
@@ -576,9 +576,9 @@ function deleteSelectedRows() {
         () => {
             const $btn = $('#btnDeleteSelectedRows');
             setLoading($trs, true);
-            return withLoading($btn, getPrimaryKey(table).then(pk => {
-                const values = idxs.map(i => dbState.allBrowseRows[i][pk]);
-                return api('mysql_delete_rows', { db_name: currentDb, table, pk_column: pk, pk_values: values });
+            return withLoading($btn, getPrimaryKey(table).then(pks => {
+                const pkRows = idxs.map(i => pickKey(dbState.allBrowseRows[i], pks));
+                return api('mysql_delete_rows', { db_name: currentDb, table, pk_rows: pkRows });
             }))
             .then(res => {
                 setLoading($trs, false);
@@ -671,10 +671,10 @@ function editSelectedRow() {
     const idx = parseInt($checked.data('row'));
     const row = dbState.allBrowseRows[idx];
     withLoading($('#btnEditSelectedRows'), getPrimaryKey(table))
-    .then(pk => {
-        editingRow = { table, pk, pkValue: row[pk], original: row };
+    .then(pks => {
+        editingRow = { table, pk: pickKey(row, pks), original: row };
         $('#dbEditRowSubtitle').text(table);
-        $('#dbEditRowPkInfo').text(`${pk} = ${row[pk]}`);
+        $('#dbEditRowPkInfo').text(pks.map(k => `${k} = ${row[k]}`).join(', '));
         const $body = $('#dbEditRowBody').empty();
         Object.keys(row).forEach(col => {
             const $g = $('<div class="mb-3"><label class="form-label text-muted small fw-bold"></label><div class="input-group"><textarea class="form-control bg-darker border-secondary text-light shadow-none font-monospace" rows="1"></textarea><div class="input-group-text bg-dark border-secondary"><input type="checkbox" class="form-check-input mt-0 db-edit-null" title="NULL"><small class="ms-1 text-muted">NULL</small></div></div></div>');
@@ -693,7 +693,7 @@ function editSelectedRow() {
 
 function saveEditedRow() {
     if (!editingRow) return;
-    const { table, pk, pkValue, original } = editingRow;
+    const { table, pk, original } = editingRow;
     const rowData = {};
     $('#dbEditRowBody textarea').each(function() {
         const col = $(this).attr('data-col');
@@ -708,7 +708,7 @@ function saveEditedRow() {
     }
     const $tr = $('#dbBrowseTbody .db-row-check:checked').closest('tr');
     setLoading($tr, true);
-    withLoading($('#btnDbSaveRow'), api('mysql_update_row', { db_name: currentDb, table, pk_column: pk, pk_value: pkValue, row_data: rowData }), { text: 'Saving...' })
+    withLoading($('#btnDbSaveRow'), api('mysql_update_row', { db_name: currentDb, table, pk, row_data: rowData }), { text: 'Saving...' })
     .then(() => {
         bootstrap.Modal.getInstance(document.getElementById('dbEditRowModal')).hide();
         showToast('Row updated');

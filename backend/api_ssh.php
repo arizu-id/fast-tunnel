@@ -77,6 +77,7 @@ flush();
 }
 echo "data: ".json_encode(['closed'=>true])."\n\n";
 flush();
+@unlink($outputFile);
 exit;
 default:
 header('Content-Type: application/json');
@@ -104,25 +105,8 @@ usleep(300000);
 @unlink($oldStream['resize_file']??'');
 }
 $tmpDir=__DIR__.'/../temp_ssh';
-if(!is_dir($tmpDir)){
-@mkdir($tmpDir,0777,true);
-}else{
-$oldFiles=glob($tmpDir.'/*');
-if($oldFiles){
-foreach($oldFiles as$f){
-if(is_file($f)&&(time()-filemtime($f))>7200){
-if(strpos(basename($f),'_pid')!==false){
-$pid=(int)@file_get_contents($f);
-if($pid>0){
-if(PHP_OS_FAMILY==='Windows'){@exec("taskkill /F /PID $pid >NUL 2>&1");}
-else{@exec("kill -9 $pid >/dev/null 2>&1");}
-}
-}
-@unlink($f);
-}
-}
-}
-}
+if(!is_dir($tmpDir)){@mkdir($tmpDir,0777,true);}
+reapSshTempFiles($tmpDir);
 $testSsh=new \App\SshClient($host,$port);
 $testSsh->connect($user,$password);
 $sid=uniqid('ssh_',true);

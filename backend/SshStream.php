@@ -96,7 +96,11 @@ try {
 } catch (\Throwable $e) {
     file_put_contents($outputFile, "\r\n\x1b[1;31mSSH Error: " . $e->getMessage() . "\x1b[0m\r\n", FILE_APPEND);
 } finally {
-    @unlink($pidFile);
     @unlink($killFile);
     if ($resizeFile) @unlink($resizeFile);
+    // The session file holds the (encrypted) password and the input file holds keystrokes:
+    // remove them as soon as the shell ends instead of waiting for the reaper.
+    @unlink($inputFile);
+    @unlink($argv[1]);
+    @unlink($pidFile);
 }

@@ -136,6 +136,7 @@ break;
 case'mysql_drop_database':
 $db_name=$data['db_name']??'';
 $safeDb=sanitizeDatabaseName($db_name);
+if(($data['confirm_name']??null)!==$db_name){throw new Exception("Confirmation name does not match the database name");}
 if(!isset($_SESSION['mysql_auth'])){throw new Exception("Not connected to MySQL.");}
 $auth=$_SESSION['mysql_auth'];
 $mysql=new \App\MysqlClient($auth['host'],$auth['port'],$auth['user'],Auth::decrypt($auth['password_enc']),'');
@@ -146,36 +147,41 @@ break;
 case'mysql_update_row':
 $db_name=$data['db_name']??'';
 $table=$data['table']??'';
-$pkColumn=$data['pk_column']??'';
-$pkValue=$data['pk_value']??null;
 $rowData=$data['row_data']??[];
-if(!$table||!$pkColumn||$pkValue===null||empty($rowData)){throw new Exception("table, pk_column, pk_value and row_data are required");}
+$pk=pkFromRequest($data);
+if(!$table||empty($pk)||empty($rowData)){throw new Exception("table, primary key and row_data are required");}
 $mysql=getConnectedMysql($db_name);
 $safeTable=sanitizeIdentifier($table);
-$safePkColumn=sanitizeIdentifier($pkColumn);
 $setClauses=[];
 $params=[];
 foreach($rowData as$col=>$val){
 $setClauses[]=sanitizeIdentifier($col)." = ?";
 $params[]=$val==='__NULL__'?null:$val;
 }
-$params[]=$pkValue;
-$sql="UPDATE $safeTable SET ".implode(', ',$setClauses)." WHERE $safePkColumn = ?";
+$where=[];
+foreach($pk as$col=>$val){$where[]=sanitizeIdentifier($col)." = ?";$params[]=$val;}
+$sql="UPDATE $safeTable SET ".implode(', ',$setClauses)." WHERE ".implode(' AND ',$where)." LIMIT 1";
 $affected=$mysql->executePrepare($sql,$params);
 echo json_encode(['success'=>true,'affected'=>$affected]);
 break;
 case'mysql_delete_rows':
 $db_name=$data['db_name']??'';
 $table=$data['table']??'';
-$pkColumn=$data['pk_column']??'';
-$pkValues=$data['pk_values']??[];
-if(!$table||!$pkColumn||empty($pkValues)){throw new Exception("table, pk_column and pk_values are required");}
+$pkRows=pkRowsFromRequest($data);
+if(!$table||empty($pkRows)){throw new Exception("table and primary key values are required");}
 $mysql=getConnectedMysql($db_name);
 $safeTable=sanitizeIdentifier($table);
-$safePkColumn=sanitizeIdentifier($pkColumn);
-$placeholders=implode(',',array_fill(0,count($pkValues),'?'));
-$sql="DELETE FROM $safeTable WHERE $safePkColumn IN ($placeholders)";
-$affected=$mysql->executePrepare($sql,array_values($pkValues));
+$affected=0;
+foreach(array_chunk($pkRows,200)as$chunk){
+$params=[];
+$ors=[];
+foreach($chunk as$row){
+$ands=[];
+foreach($row as$col=>$val){$ands[]=sanitizeIdentifier($col)." = ?";$params[]=$val;}
+$ors[]='('.implode(' AND ',$ands).')';
+}
+$affected+=(int)$mysql->executePrepare("DELETE FROM $safeTable WHERE ".implode(' OR ',$ors),$params);
+}
 echo json_encode(['success'=>true,'affected'=>$affected]);
 break;
 default:

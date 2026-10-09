@@ -28,10 +28,22 @@ export function switchDbTab(tab) {
     $('.db-tab-pane').addClass('d-none');
     $(`#dbPane${tab.charAt(0).toUpperCase() + tab.slice(1)}`).removeClass('d-none');
 }
-export function showDbConfirm(title, message, onConfirm) {
+export function showDbConfirm(title, message, onConfirm, opts = {}) {
     dbState.confirmCallback = onConfirm;
     $('#dbConfirmTitle').text(title);
-    $('#dbConfirmBody').html(message);
+    const $body = $('#dbConfirmBody').html(message);
+    const $ok = $('#dbConfirmOk').prop('disabled', false);
+    if (opts.typeName) {
+        // Destructive action: require typing the exact name before OK is enabled
+        const $wrap = $('<div class="mt-3"><label class="form-label small text-muted mb-1"></label>' +
+            '<input type="text" class="form-control bg-darker border-secondary text-light shadow-none" autocomplete="off" spellcheck="false"></div>');
+        $wrap.find('label').append('Type ', $('<code></code>').text(opts.typeName), ' to confirm');
+        $wrap.find('input').on('input', function() {
+            $ok.prop('disabled', $(this).val() !== opts.typeName);
+        });
+        $body.append($wrap);
+        $ok.prop('disabled', true);
+    }
     const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('dbConfirmModal'));
     modal.show();
 }

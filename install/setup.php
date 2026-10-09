@@ -80,6 +80,18 @@ try {
         INDEX idx_ip_time(ip_address, attempted_at)
     ) ENGINE=InnoDB");
 
+    $pdo->exec("CREATE TABLE IF NOT EXISTS audit_log(
+        id BIGINT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NULL,
+        username VARCHAR(50) NULL,
+        ip_address VARCHAR(45) NOT NULL,
+        action VARCHAR(64) NOT NULL,
+        target VARCHAR(255) NULL,
+        detail TEXT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_created(created_at)
+    ) ENGINE=InnoDB");
+
     // 4. Create admin user
     $stmt = $pdo->prepare("SELECT COUNT(*) FROM users WHERE username = ?");
     $stmt->execute([$adminUser]);

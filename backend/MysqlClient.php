@@ -22,7 +22,10 @@ class MysqlClient {
             $options = [
                 PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-                PDO::ATTR_TIMEOUT => 5
+                PDO::ATTR_TIMEOUT => 5,
+                // Reuse the TCP/auth handshake across requests (key = dsn+user+password,
+                // so each database gets its own pooled connection). Disable with FT_MYSQL_PERSISTENT=false.
+                PDO::ATTR_PERSISTENT => defined('FT_MYSQL_PERSISTENT') ? (bool)FT_MYSQL_PERSISTENT : true
             ];
             $this->conn = new PDO($dsn, $user, $password, $options);
         }
@@ -65,15 +68,25 @@ class MysqlClient {
             return $stmt->fetchAll(PDO::FETCH_COLUMN);
         }
     }
+    private function quoteIdent($id) {
+        $id = (string)$id;
+        if ($id === '' || strlen($id) > 64 || preg_match('/[\x00-\x1f\x7f]/', $id)) {
+            throw new Exception("Invalid identifier");
+        }
+        return '`' . str_replace('`', '``', $id) . '`';
+    }
     public function getTableData($table, $page = 1, $limit = 50) {
+        $tq = $this->quoteIdent($table);
+        $page = max(1, (int)$page);
+        $limit = min(1000, max(1, (int)$limit));
         $offset = ($page - 1) * $limit;
         if ($this->useMysqli) {
-            $countRes = $this->conn->query("SELECT COUNT(*) FROM `$table`");
+            $countRes = $this->conn->query("SELECT COUNT(*) FROM {$tq}");
             if (!$countRes) {
                 throw new Exception($this->conn->error);
             }
             $total = (int)$countRes->fetch_row()[0];
-            $dataRes = $this->conn->query("SELECT * FROM `$table` LIMIT $limit OFFSET $offset");
+            $dataRes = $this->conn->query("SELECT * FROM {$tq} LIMIT $limit OFFSET $offset");
             if (!$dataRes) {
                 throw new Exception($this->conn->error);
             }
@@ -85,7 +98,7 @@ class MysqlClient {
             if (!empty($rows)) {
                 $columns = array_keys($rows[0]);
             } else {
-                $descRes = $this->conn->query("DESCRIBE `$table`");
+                $descRes = $this->conn->query("DESCRIBE {$tq}");
                 if ($descRes) {
                     while ($row = $descRes->fetch_assoc()) {
                         $columns[] = $row['Field'];
@@ -100,15 +113,15 @@ class MysqlClient {
                 'limit' => $limit
             ];
         } else {
-            $countStmt = $this->conn->query("SELECT COUNT(*) FROM `$table`");
+            $countStmt = $this->conn->query("SELECT COUNT(*) FROM {$tq}");
             $total = (int)$countStmt->fetchColumn();
-            $dataStmt = $this->conn->query("SELECT * FROM `$table` LIMIT $limit OFFSET $offset");
+            $dataStmt = $this->conn->query("SELECT * FROM {$tq} LIMIT $limit OFFSET $offset");
             $rows = $dataStmt->fetchAll();
             $columns = [];
             if (!empty($rows)) {
                 $columns = array_keys($rows[0]);
             } else {
-                $descStmt = $this->conn->query("DESCRIBE `$table`");
+                $descStmt = $this->conn->query("DESCRIBE {$tq}");
                 while ($row = $descStmt->fetch()) {
                     $columns[] = $row['Field'];
                 }
@@ -223,8 +236,9 @@ class MysqlClient {
         }
     }
     public function getTableColumns($table) {
+        $tq = $this->quoteIdent($table);
         if ($this->useMysqli) {
-            $res = $this->conn->query("DESCRIBE `$table`");
+            $res = $this->conn->query("DESCRIBE {$tq}");
             if (!$res) {
                 throw new Exception($this->conn->error);
             }
@@ -234,7 +248,7 @@ class MysqlClient {
             }
             return $columns;
         } else {
-            $stmt = $this->conn->query("DESCRIBE `$table`");
+            $stmt = $this->conn->query("DESCRIBE {$tq}");
             return $stmt->fetchAll();
         }
     }

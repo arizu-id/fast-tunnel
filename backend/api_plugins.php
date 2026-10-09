@@ -88,6 +88,17 @@ if ($method === 'POST') {
 
             // Security Audit: Inspect ZIP entries for Zip-Slip (Path Traversal) and forbidden files
             $numFiles = $zip->numFiles;
+            // Zip-bomb guard: cap entry count and total uncompressed size
+            $totalSize = 0;
+            for ($i = 0; $i < $numFiles; $i++) {
+                $st = $zip->statIndex($i);
+                $totalSize += $st ? (int)$st['size'] : 0;
+            }
+            if ($numFiles > 1000 || $totalSize > 50 * 1024 * 1024) {
+                $zip->close();
+                rmdir_recursive($tempPath);
+                throw new Exception("Plugin archive is too large (max 1000 files / 50 MB uncompressed).");
+            }
             $disallowedExts = ['phtml', 'php3', 'php4', 'php5', 'php7', 'phps', 'phar', 'inc', 'cgi', 'pl', 'py', 'asp', 'aspx', 'exe', 'sh', 'bat', 'cmd', 'dll', 'so'];
 
             for ($i = 0; $i < $numFiles; $i++) {

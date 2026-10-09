@@ -11,7 +11,6 @@ define('DB_USER', '%%DB_USER%%');
 define('DB_PASS', '%%DB_PASS%%');
 define('DB_NAME', '%%DB_NAME%%');
 define('ENCRYPTION_KEY', '%%ENCRYPTION_KEY%%');
-define('CSRF_SECRET', 'ft_csrf_' . md5(__DIR__));
 define('FT_LICENSE_KEY', '%%LICENSE_KEY%%');
 define('FT_LICENSE_EMAIL', '%%LICENSE_EMAIL%%');
 

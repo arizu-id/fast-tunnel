@@ -7,6 +7,7 @@ import { expandAndRefreshFolder, createNewFile, createNewFolder, uploadFiles } f
 import { initMonacoEditor, saveCurrentFile, closeTab } from './modules/editor.js';
 import { initContextMenu } from './modules/context-menu.js';
 import { withLoading, setLoading } from './modules/loading.js';
+import { api } from './modules/api.js';
 import './modules/loading-bar.js';
 $(document).ready(function() {
     // Intercept native fetch to automatically inject CSRF token
@@ -245,6 +246,26 @@ $(document).ready(function() {
             btn.prop('disabled', false).html('<i class="bi bi-check-lg me-1"></i>Save Changes');
         });
     });
+
+    // Audit log viewer
+    function loadAuditLog() {
+        const $body = $('#auditLogBody');
+        const esc = v => $('<div>').text(v == null ? '' : v).html();
+        return withLoading($('#auditLogModal .modal-body'), api('auth_audit_list', { limit: 200 }), { overlay: true })
+        .then(res => {
+            $body.html((res.entries || []).map(e => `<tr>
+                <td class="px-3 py-1 text-nowrap text-muted">${esc(e.created_at)}</td>
+                <td class="px-3 py-1">${esc(e.username)}</td>
+                <td class="px-3 py-1 text-muted">${esc(e.ip_address)}</td>
+                <td class="px-3 py-1"><span class="badge bg-secondary">${esc(e.action)}</span></td>
+                <td class="px-3 py-1 text-break">${esc(e.target)}</td>
+                <td class="px-3 py-1 text-break text-muted">${esc(e.detail)}</td></tr>`).join('')
+                || '<tr><td colspan="6" class="text-center text-muted p-4">No entries yet</td></tr>');
+        })
+        .catch(err => $body.html(`<tr><td colspan="6" class="text-danger p-3">${esc(err.message)}</td></tr>`));
+    }
+    $('#auditLogModal').on('show.bs.modal', loadAuditLog);
+    $('#btnRefreshAudit').click(loadAuditLog);
 
     // Plugins Manager listeners
     $('#pluginsModal').on('show.bs.modal', loadPlugins);

@@ -32,3 +32,5 @@ yarn-debug.log*
 yarn-error.log*
 *.sql
 *.sql.gz
+
+node_modules/

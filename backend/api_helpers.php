@@ -60,6 +60,10 @@ function loadPluginBackends(): void {
     }
 }
 function getConnectedFtp(): \App\FtpClient {
+    static $cached = null;
+    if ($cached !== null) {
+        return $cached;
+    }
     if (!isset($_SESSION['ftp_auth'])) {
         throw new Exception("Not connected.");
     }
@@ -78,7 +82,7 @@ function getConnectedFtp(): \App\FtpClient {
         $use_proxy ? Auth::decrypt($auth['proxy_password_enc'] ?? '') : ''
     );
     $ftp->connect();
-    return $ftp;
+    return $cached = $ftp;
 }
 function getConnectedMysql($dbName = ''): \App\MysqlClient {
     if (!isset($_SESSION['mysql_auth'])) {
@@ -162,4 +166,70 @@ function sanitizeColumnLength(string $length): string {
         throw new Exception("Invalid length value: " . htmlspecialchars($length));
     }
     return $clean;
+}
+
+/**
+ * Record sensitive actions in the audit log once they have succeeded.
+ */
+function auditSuccessfulAction(string $action,array $data):void{
+$db=$data['db_name']??'';
+$table=$data['table']??'';
+switch($action){
+case'mysql_drop_database':Audit::log($action,$db);break;
+case'mysql_drop_table':
+case'mysql_truncate_table':Audit::log($action,"$db.$table");break;
+case'mysql_drop_columns':Audit::log($action,"$db.$table",implode(',',(array)($data['columns']??[])));break;
+case'mysql_delete_rows':Audit::log($action,"$db.$table",count(pkRowsFromRequest($data)).' row(s)');break;
+case'mysql_run_query':
+$sql=trim((string)($data['sql']??''));
+if(!preg_match('/^(select|show|describe|desc|explain)\\b/i',$sql))Audit::log($action,$db,$sql);
+break;
+case'delete':Audit::log('ftp_delete',(string)($data['path']??''));break;
+case'sessions_delete':Audit::log($action,(string)($data['id']??''));break;
+case'sessions_import':Audit::log($action,'',count((array)($data['sessions']??[])).' session(s)');break;
+case'delete_plugin':Audit::log($action,(string)($data['slug']??''));break;
+case'install_plugin':Audit::log($action,(string)($_FILES['plugin_file']['name']??''));break;
+case'auth_update_credentials':Audit::log($action,(string)($data['username']??''));break;
+}
+}
+
+/**
+ * Remove stale SSH IPC files (and kill orphaned daemons) older than $maxAge seconds.
+ */
+function reapSshTempFiles(string $tmpDir,int $maxAge=7200):void{
+$files=glob($tmpDir.'/*');
+if(!$files)return;
+foreach($files as$f){
+if(!is_file($f)||(time()-filemtime($f))<=$maxAge)continue;
+if(strpos(basename($f),'_pid')!==false){
+$pid=(int)@file_get_contents($f);
+if($pid>0){
+if(PHP_OS_FAMILY==='Windows'){@exec("taskkill /F /PID $pid >NUL 2>&1");}
+else{@exec("kill -9 $pid >/dev/null 2>&1");}
+}
+}
+@unlink($f);
+}
+}
+
+/**
+ * Primary key of a single row as [column => value]. Accepts the composite form
+ * {pk:{col:val,...}} or the legacy {pk_column, pk_value}.
+ */
+function pkFromRequest(array $data):array{
+if(isset($data['pk'])&&is_array($data['pk']))return $data['pk'];
+if(!empty($data['pk_column'])&&array_key_exists('pk_value',$data)&&$data['pk_value']!==null)return[$data['pk_column']=>$data['pk_value']];
+return[];
+}
+/**
+ * List of primary keys for a multi-row delete: {pk_rows:[{col:val,...},...]} or legacy {pk_column, pk_values}.
+ */
+function pkRowsFromRequest(array $data):array{
+if(!empty($data['pk_rows'])&&is_array($data['pk_rows'])){
+return array_values(array_filter($data['pk_rows'],fn($r)=>is_array($r)&&!empty($r)));
+}
+if(!empty($data['pk_column'])&&!empty($data['pk_values'])&&is_array($data['pk_values'])){
+return array_map(fn($v)=>[$data['pk_column']=>$v],array_values($data['pk_values']));
+}
+return[];
 }
