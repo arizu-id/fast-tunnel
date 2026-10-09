@@ -159,6 +159,14 @@ $(document).ready(function() {
     $('#btnSaveFile').click(function() {
         saveCurrentFile();
     });
+    $('#btnSaveCloseFile').click(function() {
+        const path = state.currentOpenedFile;
+        if (!path) {
+            showToast('No file is open', 'warning');
+            return;
+        }
+        saveCurrentFile(() => closeTab(path));
+    });
     $(window).bind('keydown', function(event) {
         if (event.ctrlKey || event.metaKey) {
             switch (String.fromCharCode(event.which).toLowerCase()) {

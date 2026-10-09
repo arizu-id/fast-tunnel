@@ -1,5 +1,6 @@
 import { state } from './state.js';
 import { showToast } from './ui.js';
+import { setLoading } from './loading.js';
 export function initMonacoEditor() {
     require.config({ paths: { 'vs': '/assets/vendor/monaco-editor/min/vs' } });
     require(['vs/editor/editor.main'], function() {
@@ -208,11 +209,10 @@ export function saveCurrentFile(callback) {
     const activeTab = state.openTabs.find(t => t.path === state.currentOpenedFile);
     if (!activeTab || !activeTab.model) return;
     const content = activeTab.model.getValue();
-    const btn = $('#btnSaveFile');
-    const originalHtml = btn.html();
-    btn.html('<i class="bi bi-arrow-repeat spin me-2"></i>Saving...');
-    btn.prop('disabled', true);
-    $.ajax({
+    const $saveBtns = $('#btnSaveFile, #btnSaveCloseFile');
+    if ($('#btnSaveFile').attr('aria-busy') === 'true') return;
+    setLoading($saveBtns, true);
+    return $.ajax({
         url: '/api/write_file',
         type: 'POST',
         contentType: 'application/json',
@@ -228,9 +228,11 @@ export function saveCurrentFile(callback) {
                 showToast('Failed to save file: ' + (res.error || ''), 'danger');
             }
         },
+        error: function() {
+            showToast('Failed to save file', 'danger');
+        },
         complete: function() {
-            btn.html(originalHtml);
-            btn.prop('disabled', false);
+            setLoading($saveBtns, false);
         }
     });
 }
