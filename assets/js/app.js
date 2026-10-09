@@ -6,6 +6,7 @@ import { loadSessions, saveSession, exportSessions, handleImportFile, doExportWi
 import { expandAndRefreshFolder, createNewFile, createNewFolder, uploadFiles } from './modules/ftp.js';
 import { initMonacoEditor, saveCurrentFile, closeTab } from './modules/editor.js';
 import { initContextMenu } from './modules/context-menu.js';
+import { withLoading, setLoading } from './modules/loading.js';
 import './modules/loading-bar.js';
 $(document).ready(function() {
     // Intercept native fetch to automatically inject CSRF token
@@ -297,12 +298,12 @@ $(document).ready(function() {
             'Delete Plugin',
             'btn-danger',
             function() {
-                showToast('Deleting plugin...', 'info');
-                fetch('/api/delete_plugin', {
+                const $card = $('.btn-delete-plugin').filter((_, el) => $(el).data('slug') === slug).closest('.d-flex.align-items-center.justify-content-between');
+                return withLoading($card, fetch('/api/delete_plugin', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ slug: slug })
-                })
+                }))
                 .then(r => r.json())
                 .then(res => {
                     if (res.success) {

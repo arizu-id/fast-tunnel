@@ -1,6 +1,8 @@
 import { state } from './state.js';
 import { selectItem, getParentPath } from './helpers.js';
 import { showToast, showConfirmModal, promptInput } from './ui.js';
+import { api } from './api.js';
+import { setLoading, withLoading } from './loading.js';
 import { openFile, closeTab, getFileIconClass, renderTabs, switchTab } from './editor.js';
 export function connectSession(id, sessionData) {
     if (state.isConnecting) {
@@ -11,6 +13,7 @@ export function connectSession(id, sessionData) {
     state.currentProtocol = 'ftp';
     $('#connectionStatus').html(`<span class="text-info"><i class="bi bi-arrow-repeat spin me-2 d-inline-block"></i>Connecting to ${sessionData.name}...</span>`);
     $('.session-item').addClass('pe-none opacity-50');
+    setLoading($('.session-item.active'), true);
     $.ajax({
         url: '/api/connect',
         type: 'POST',
@@ -63,6 +66,7 @@ export function connectSession(id, sessionData) {
         complete: function() {
             state.isConnecting = false;
             $('.session-item').removeClass('pe-none opacity-50');
+        setLoading($('.session-item'), false);
         }
     });
 }
@@ -179,6 +183,8 @@ export function toggleFolder(path, $item, $children) {
         $children.stop(true).slideDown(150);
         if ($children.children().length === 0) {
             $children.html('<div class="text-muted small ps-2 py-1 opacity-50"><i class="bi bi-arrow-repeat spin me-1"></i>Loading...</div>');
+            const $loadRow = $item.children('.tree-row').first();
+            setLoading($loadRow, true);
             $.ajax({
                 url: '/api/list',
                 type: 'POST',
@@ -195,14 +201,22 @@ export function toggleFolder(path, $item, $children) {
                 },
                 error: function() {
                     $children.html('<div class="text-danger small ps-2 opacity-75">Load failed</div>');
-                }
+                },
+                complete: function() { setLoading($loadRow, false); }
             });
         }
     }
 }
+function treeRow(path) {
+    return $('.tree-item').filter((_, el) => $(el).attr('data-path') === path).children('.tree-row').first();
+}
+function folderTarget(path) {
+    return path === '/' ? $('#fileList') : treeRow(path);
+}
 export function expandAndRefreshFolder(path) {
     if (path === '/') {
         const $tree = $('#fileList');
+        setLoading($tree, true);
         $.ajax({
             url: '/api/list',
             type: 'POST',
@@ -214,14 +228,17 @@ export function expandAndRefreshFolder(path) {
                     $tree.empty();
                     renderTreeItems(res.files || [], $tree, '/');
                 }
-            }
+            },
+            complete: function() { setLoading($tree, false); }
         });
         return;
     }
     const $item = $(`.tree-item[data-path="${path}"]`);
     if ($item.length === 0) return;
     const $children = $item.find('.tree-children').first();
+    const $row = $item.children('.tree-row').first();
     $children.empty();
+    setLoading($row, true);
     $.ajax({
         url: '/api/list',
         type: 'POST',
@@ -232,82 +249,56 @@ export function expandAndRefreshFolder(path) {
             if (res.success) {
                 renderTreeItems(res.files || [], $children, path);
             }
-        }
+        },
+        complete: function() { setLoading($row, false); }
     });
 }
 export function createNewFile(path, name) {
     const fullPath = (path === '/' ? '' : path) + '/' + name;
-    $.ajax({
-        url: '/api/write_file',
-        type: 'POST',
-        contentType: 'application/json',
-        dataType: 'json',
-        data: JSON.stringify({ file: fullPath, content: '' }),
-        success: function(res) {
-            if (res.success) {
-                showToast('File created');
-                expandAndRefreshFolder(path);
-                openFile(fullPath, name);
-            } else {
-                showToast(res.error || 'Failed to create file', 'danger');
-            }
-        }
-    });
+    return withLoading(folderTarget(path), api('write_file', { file: fullPath, content: '' }))
+    .then(() => {
+        showToast('File created');
+        expandAndRefreshFolder(path);
+        openFile(fullPath, name);
+    })
+    .catch(err => showToast(err.message || 'Failed to create file', 'danger'));
 }
 export function createNewFolder(path, name) {
     const fullPath = (path === '/' ? '' : path) + '/' + name;
-    $.ajax({
-        url: '/api/create_dir',
-        type: 'POST',
-        contentType: 'application/json',
-        dataType: 'json',
-        data: JSON.stringify({ dir: fullPath }),
-        success: function(res) {
-            if (res.success) {
-                showToast('Folder created');
-                expandAndRefreshFolder(path);
-            } else {
-                showToast(res.error || 'Failed to create folder', 'danger');
-            }
-        }
-    });
+    return withLoading(folderTarget(path), api('create_dir', { dir: fullPath }))
+    .then(() => {
+        showToast('Folder created');
+        expandAndRefreshFolder(path);
+    })
+    .catch(err => showToast(err.message || 'Failed to create folder', 'danger'));
 }
 export function renameItem(path, newName, isDir) {
     const parent = getParentPath(path);
     const newPath = (parent === '/' ? '' : parent) + '/' + newName;
-    $.ajax({
-        url: '/api/rename',
-        type: 'POST',
-        contentType: 'application/json',
-        dataType: 'json',
-        data: JSON.stringify({ old: path, new: newPath }),
-        success: function(res) {
-            if (res.success) {
-                showToast('Renamed successfully');
-                expandAndRefreshFolder(parent);
-                if (!isDir) {
-                    const tab = state.openTabs.find(t => t.path === path);
-                    if (tab) {
-                        tab.path = newPath;
-                        tab.name = newName;
-                        if (tab.model) {
-                            try {
-                                const langId = newName.split('.').pop().toLowerCase();
-                                const langMap = {'js':'javascript','json':'json','ts':'typescript','html':'html','css':'css','php':'php','py':'python','md':'markdown','sql':'sql','xml':'xml','yml':'yaml','yaml':'yaml'};
-                                monaco.editor.setModelLanguage(tab.model, langMap[langId] || 'plaintext');
-                            } catch(e) {}
-                        }
-                        renderTabs();
-                    }
-                    if (state.currentOpenedFile === path) {
-                        state.currentOpenedFile = newPath;
-                    }
+    return withLoading(treeRow(path), api('rename', { old: path, new: newPath }))
+    .then(() => {
+        showToast('Renamed successfully');
+        expandAndRefreshFolder(parent);
+        if (!isDir) {
+            const tab = state.openTabs.find(t => t.path === path);
+            if (tab) {
+                tab.path = newPath;
+                tab.name = newName;
+                if (tab.model) {
+                    try {
+                        const langId = newName.split('.').pop().toLowerCase();
+                        const langMap = {'js':'javascript','json':'json','ts':'typescript','html':'html','css':'css','php':'php','py':'python','md':'markdown','sql':'sql','xml':'xml','yml':'yaml','yaml':'yaml'};
+                        monaco.editor.setModelLanguage(tab.model, langMap[langId] || 'plaintext');
+                    } catch(e) {}
                 }
-            } else {
-                showToast(res.error || 'Rename failed', 'danger');
+                renderTabs();
+            }
+            if (state.currentOpenedFile === path) {
+                state.currentOpenedFile = newPath;
             }
         }
-    });
+    })
+    .catch(err => showToast(err.message || 'Rename failed', 'danger'));
 }
 export function deleteItem(path, isDir) {
     const itemType = isDir ? 'folder' : 'file';
@@ -318,28 +309,18 @@ export function deleteItem(path, isDir) {
         'btn-danger',
         function() {
             const parent = getParentPath(path);
-            $.ajax({
-                url: '/api/delete',
-                type: 'POST',
-                contentType: 'application/json',
-                dataType: 'json',
-                data: JSON.stringify({ path: path, isDir: isDir }),
-                success: function(res) {
-                    if (res.success) {
-                        expandAndRefreshFolder(parent);
-                        if (isDir) {
-                            const prefix = path.endsWith('/') ? path : path + '/';
-                            const tabsToClose = state.openTabs.filter(t => t.path.startsWith(prefix));
-                            tabsToClose.forEach(t => closeTab(t.path));
-                        } else {
-                            closeTab(path);
-                        }
-                        showToast('Deleted successfully');
-                    } else {
-                        showToast(res.error || 'Delete failed', 'danger');
-                    }
+            return withLoading(treeRow(path), api('delete', { path: path, isDir: !!isDir }))
+            .then(() => {
+                expandAndRefreshFolder(parent);
+                if (isDir) {
+                    const prefix = path.endsWith('/') ? path : path + '/';
+                    state.openTabs.filter(t => t.path.startsWith(prefix)).forEach(t => closeTab(t.path));
+                } else {
+                    closeTab(path);
                 }
-            });
+                showToast('Deleted successfully');
+            })
+            .catch(err => showToast(err.message || 'Delete failed', 'danger'));
         }
     );
 }
@@ -354,35 +335,24 @@ export function moveItem(sourcePath, destFolder, isDir) {
         return;
     }
     const newPath = (destFolder === '/' ? '' : destFolder) + '/' + name;
-    $.ajax({
-        url: '/api/rename',
-        type: 'POST',
-        contentType: 'application/json',
-        dataType: 'json',
-        data: JSON.stringify({ old: sourcePath, new: newPath }),
-        success: function(res) {
-            if (res.success) {
-                showToast('Moved successfully');
-                expandAndRefreshFolder(sourceParent);
-                expandAndRefreshFolder(destFolder);
-                if (!isDir) {
-                    const tab = state.openTabs.find(t => t.path === sourcePath);
-                    if (tab) {
-                        tab.path = newPath;
-                        if (state.currentOpenedFile === sourcePath) {
-                            state.currentOpenedFile = newPath;
-                        }
-                        renderTabs();
-                    }
+    const $targets = treeRow(sourcePath).add(folderTarget(destFolder));
+    return withLoading($targets, api('rename', { old: sourcePath, new: newPath }))
+    .then(() => {
+        showToast('Moved successfully');
+        expandAndRefreshFolder(sourceParent);
+        expandAndRefreshFolder(destFolder);
+        if (!isDir) {
+            const tab = state.openTabs.find(t => t.path === sourcePath);
+            if (tab) {
+                tab.path = newPath;
+                if (state.currentOpenedFile === sourcePath) {
+                    state.currentOpenedFile = newPath;
                 }
-            } else {
-                showToast(res.error || 'Failed to move', 'danger');
+                renderTabs();
             }
-        },
-        error: function() {
-            showToast('Error moving item', 'danger');
         }
-    });
+    })
+    .catch(err => showToast(err.message || 'Error moving item', 'danger'));
 }
 
 export function uploadFiles(files, destFolder) {
@@ -393,6 +363,8 @@ export function uploadFiles(files, destFolder) {
         formData.append('files[]', files[i]);
     }
     showToast(`Uploading ${files.length} file(s)...`, 'info');
+    const $target = folderTarget(destFolder);
+    setLoading($target, true);
     $.ajax({
         url: '/api/upload',
         type: 'POST',
@@ -411,7 +383,8 @@ export function uploadFiles(files, destFolder) {
             let msg = 'Upload failed';
             try { msg = JSON.parse(xhr.responseText).error || msg; } catch(e) {}
             showToast(msg, 'danger');
-        }
+        },
+        complete: function() { setLoading($target, false); }
     });
 }
 

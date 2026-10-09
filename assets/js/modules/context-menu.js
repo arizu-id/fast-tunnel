@@ -34,14 +34,14 @@ export function initContextMenu() {
                     name: `${ctxIcon('bi-file-earmark-plus')} ${window.__ft_translate('new_file', 'New File')}`,
                     isHtmlName: true,
                     callback: function() {
-                        promptInput('New File Name:', function(n) { createNewFile(path, n); });
+                        promptInput('New File Name:', function(n) { return createNewFile(path, n); });
                     }
                 };
                 items.new_folder = {
                     name: `${ctxIcon('bi-folder-plus')} ${window.__ft_translate('new_folder', 'New Folder')}`,
                     isHtmlName: true,
                     callback: function() {
-                        promptInput('New Folder Name:', function(n) { createNewFolder(path, n); });
+                        promptInput('New Folder Name:', function(n) { return createNewFolder(path, n); });
                     }
                 };
                 items.upload_file = {
@@ -77,7 +77,7 @@ export function initContextMenu() {
                 isHtmlName: true,
                 callback: function() {
                     promptInput('New Name:', function(newName) {
-                        renameItem(path, newName, isDir);
+                        return renameItem(path, newName, isDir);
                     });
                 }
             };
@@ -105,7 +105,7 @@ export function initContextMenu() {
                         isHtmlName: true,
                         callback: function() {
                             const path = state.selectedPath || '/';
-                            promptInput('New File Name:', function(n) { createNewFile(path, n); });
+                            promptInput('New File Name:', function(n) { return createNewFile(path, n); });
                         }
                     },
                     new_folder: {
@@ -113,7 +113,7 @@ export function initContextMenu() {
                         isHtmlName: true,
                         callback: function() {
                             const path = state.selectedPath || '/';
-                            promptInput('New Folder Name:', function(n) { createNewFolder(path, n); });
+                            promptInput('New Folder Name:', function(n) { return createNewFolder(path, n); });
                         }
                     },
                     upload_file: {

@@ -1,3 +1,4 @@
+import { finishModalAction } from './loading.js';
 export const dbState = {
     currentDb: '',
     currentBrowseTable: '',
@@ -31,7 +32,7 @@ export function showDbConfirm(title, message, onConfirm) {
     dbState.confirmCallback = onConfirm;
     $('#dbConfirmTitle').text(title);
     $('#dbConfirmBody').html(message);
-    const modal = new bootstrap.Modal(document.getElementById('dbConfirmModal'));
+    const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('dbConfirmModal'));
     modal.show();
 }
 export function setActiveTable(tableName) {
@@ -39,3 +40,7 @@ export function setActiveTable(tableName) {
     $('#dbActiveTableName').text(tableName);
     $('#dbActiveTableBadge').show();
 }
+$(document).on('click', '#dbConfirmOk', function() {
+    const cb = dbState.confirmCallback;
+    finishModalAction('dbConfirmModal', $(this), cb ? cb() : null);
+});

@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- MySQL client: delete rows, drop table, truncate, drop column(s) and edit row/column buttons had no JavaScript handlers and did nothing. They are now wired up, along with the Structure tab (`selectDatabase`).
+- Added the missing **Drop Database** action (`mysql_drop_database`; system schemas are protected).
+- Table/column identifiers may now contain characters such as `-` (only backticks and control characters are rejected).
+
+### Added
+- Per-element loading animation (`modules/loading.js`) for FTP create/rename/move/delete/upload, MySQL actions, session CRUD/import/export/connect and plugin delete. Confirm/prompt modals keep their button spinning until the request finishes.
+
 ### Planned
 - Two-Factor Authentication (TOTP / Google Authenticator).
 - Multi-user Role-Based Access Control (Admin vs Operator roles).

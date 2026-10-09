@@ -1,5 +1,6 @@
 import { state } from './state.js';
 import { showToast } from './ui.js';
+import { setLoading } from './loading.js';
 let term = null;
 let fitAddon = null;
 let sseSource = null;
@@ -14,6 +15,7 @@ export function connectSsh(sessionId, session) {
     const password = session.password ? atob(session.password) : '';
     showToast('Connecting to SSH...', 'info');
     $('.session-item').addClass('pe-none opacity-50');
+    setLoading($('.session-item.active'), true);
     $('#connectionStatus').html(`<span class="text-info"><i class="bi bi-arrow-repeat spin me-2 d-inline-block"></i>Connecting to ${session.name}...</span>`);
     fetch('/api/ssh_connect', {
         method: 'POST',
@@ -57,6 +59,7 @@ export function connectSsh(sessionId, session) {
         loadServerInfo();
         state.isConnecting = false;
         $('.session-item').removeClass('pe-none opacity-50');
+        setLoading($('.session-item'), false);
     })
     .catch(err => {
         showToast(err.message || 'SSH connection failed', 'danger');
@@ -65,6 +68,7 @@ export function connectSsh(sessionId, session) {
         state.currentProtocol = null;
         state.currentSessionId = null;
         $('.session-item').removeClass('pe-none opacity-50');
+        setLoading($('.session-item'), false);
     });
 }
 function buildSshSidebar(session) {

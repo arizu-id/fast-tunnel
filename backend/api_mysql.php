@@ -133,6 +133,16 @@ $mysql=getConnectedMysql($db_name);
 $mysql->executeQuery("DROP TABLE ".sanitizeIdentifier($table));
 echo json_encode(['success'=>true]);
 break;
+case'mysql_drop_database':
+$db_name=$data['db_name']??'';
+$safeDb=sanitizeDatabaseName($db_name);
+if(!isset($_SESSION['mysql_auth'])){throw new Exception("Not connected to MySQL.");}
+$auth=$_SESSION['mysql_auth'];
+$mysql=new \App\MysqlClient($auth['host'],$auth['port'],$auth['user'],Auth::decrypt($auth['password_enc']),'');
+$mysql->executeQuery("DROP DATABASE $safeDb");
+if(($auth['db_name']??'')===$db_name){$_SESSION['mysql_auth']['db_name']='';}
+echo json_encode(['success'=>true,'databases'=>$mysql->listDatabases()]);
+break;
 case'mysql_update_row':
 $db_name=$data['db_name']??'';
 $table=$data['table']??'';

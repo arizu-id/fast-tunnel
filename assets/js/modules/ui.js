@@ -1,3 +1,4 @@
+import { finishModalAction } from './loading.js';
 let inputCallback = null;
 let confirmCallback = null;
 export function showToast(message, type = 'success') {
@@ -43,15 +44,14 @@ export function showConfirmModal(title, message, btnText, btnClass, callback) {
 $(document).ready(function() {
     $('#btnInputModalConfirm').click(function() {
         const val = $('#inputModalValue').val();
+        let result = null;
         if (val && inputCallback) {
-            inputCallback(val);
+            result = inputCallback(val);
         }
-        bootstrap.Modal.getInstance(document.getElementById('inputModal')).hide();
+        finishModalAction('inputModal', $(this), result);
     });
     $('#btnConfirmModalExecute').click(function() {
-        if (confirmCallback) {
-            confirmCallback();
-        }
-        bootstrap.Modal.getInstance(document.getElementById('confirmModal')).hide();
+        const result = confirmCallback ? confirmCallback() : null;
+        finishModalAction('confirmModal', $(this), result);
     });
 });

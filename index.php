@@ -157,6 +157,8 @@ if (is_dir(__DIR__ . '/plugins')) {
         "/assets/js/modules/ftp.js": "/assets/js/modules/ftp.js?v=<?php echo time(); ?>",
         "/assets/js/modules/editor.js": "/assets/js/modules/editor.js?v=<?php echo time(); ?>",
         "/assets/js/modules/context-menu.js": "/assets/js/modules/context-menu.js?v=<?php echo time(); ?>",
+        "/assets/js/modules/loading.js": "/assets/js/modules/loading.js?v=<?php echo time(); ?>",
+        "/assets/js/modules/api.js": "/assets/js/modules/api.js?v=<?php echo time(); ?>",
         "/assets/js/modules/loading-bar.js": "/assets/js/modules/loading-bar.js?v=<?php echo time(); ?>",
         "/assets/js/modules/crypto.js": "/assets/js/modules/crypto.js?v=<?php echo time(); ?>",
         "/assets/js/modules/db.js": "/assets/js/modules/db.js?v=<?php echo time(); ?>",

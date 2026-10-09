@@ -1,6 +1,7 @@
 import { state } from './state.js';
 import { showToast, showConfirmModal } from './ui.js';
 import { encryptData, decryptData, cryptoState } from './crypto.js';
+import { setLoading, withLoading } from './loading.js';
 import { connectSession, disconnectUI } from './ftp.js';
 import { connectMysql } from './db.js';
 import { connectSsh } from './ssh.js';
@@ -19,7 +20,9 @@ function apiPost(url, body = {}) {
     }).then(r => r.json());
 }
 export function loadSessions() {
-    fetch('/api/sessions_list')
+    const $list = $('#sessionList');
+    setLoading($list, true, { overlay: true });
+    return fetch('/api/sessions_list')
     .then(r => r.json())
     .then(res => {
         if (!res.success) return;
@@ -28,7 +31,8 @@ export function loadSessions() {
     })
     .catch(() => {
         $('#sessionList').html('<div class="text-muted small text-center p-3 opacity-50">Failed to load sessions</div>');
-    });
+    })
+    .finally(() => setLoading($list, false));
 }
 function renderSessionList(sessions) {
     const $list = $('#sessionList');
@@ -126,7 +130,7 @@ export function saveSession() {
             proxy_password: $('input[name="proxy_password"]').val().trim()
         };
     }
-    apiPost('/api/sessions_create', body)
+    return withLoading($('#btnSaveSession'), apiPost('/api/sessions_create', body), { text: 'Saving...' })
     .then(res => {
         if (!res.success) throw new Error(res.error || 'Failed to save');
         bootstrap.Modal.getInstance(document.getElementById('addSessionModal')).hide();
@@ -144,7 +148,8 @@ export function deleteSession(id) {
         'Delete',
         'btn-danger',
         function() {
-            apiPost('/api/sessions_delete', { id: id })
+            const $item = $('.session-item').filter((_, el) => $(el).attr('data-id') === id);
+            return withLoading($item, apiPost('/api/sessions_delete', { id: id }))
             .then(res => {
                 if (!res.success) throw new Error(res.error);
                 showToast('Session deleted');
@@ -229,7 +234,7 @@ function saveEditSession() {
     const body = { id: id, name: name || `${user}@${host} (${proto.toUpperCase()})`, host, port, user };
     if (password) body.password = password;
     if (proto === 'mysql' && dbName !== undefined) body.db_name = dbName;
-    apiPost('/api/sessions_update', body)
+    return withLoading($('#btnSaveEditSession'), apiPost('/api/sessions_update', body), { text: 'Saving...' })
     .then(res => {
         if (!res.success) throw new Error(res.error || 'Failed to update');
         bootstrap.Modal.getInstance(document.getElementById('editSessionModal')).hide();
@@ -245,7 +250,10 @@ export function exportSessions() {
     }
     new bootstrap.Modal(document.getElementById('exportPasswordModal')).show();
 }
-export async function doExportWithPassword() {
+export function doExportWithPassword() {
+    return withLoading($('#btnConfirmExport'), runExport(), { text: 'Exporting...' });
+}
+async function runExport() {
     const password = $('#exportPasswordInput').val();
     if (!password) {
         showToast('Please enter a password', 'danger');
@@ -302,7 +310,10 @@ export function handleImportFile(e) {
     };
     reader.readAsText(file);
 }
-export async function doImportWithPassword() {
+export function doImportWithPassword() {
+    return withLoading($('#btnConfirmImport'), runImport(), { text: 'Decrypting...' });
+}
+async function runImport() {
     const password = $('#importPasswordInput').val();
     if (!password || !cryptoState.pendingImportData) {
         showToast('Please enter the decryption password', 'danger');
@@ -339,7 +350,7 @@ export function processImportData(data) {
         db_name: s.db_name || '',
         extra: s.extra || null
     }));
-    apiPost('/api/sessions_import', { sessions: importPayload })
+    return withLoading($('#sessionList'), apiPost('/api/sessions_import', { sessions: importPayload }), { overlay: true })
     .then(res => {
         if (!res.success) throw new Error(res.error);
         loadSessions();

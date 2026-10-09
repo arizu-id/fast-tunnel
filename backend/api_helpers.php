@@ -131,10 +131,19 @@ function copy_recursive(string $src, string $dst): void {
 }
 function sanitizeIdentifier(string $name): string {
     $clean = str_replace('`', '', $name);
-    if (!preg_match('/^[a-zA-Z0-9_]+$/', $clean)) {
+    if ($clean === '' || strlen($clean) > 64 || preg_match('/[\x00-\x1f\x7f]/', $clean)) {
         throw new Exception("Invalid SQL identifier: " . htmlspecialchars($name));
     }
     return "`$clean`";
+}
+function sanitizeDatabaseName(string $name): string {
+    if ($name === '' || strlen($name) > 64 || strpos($name, '`') !== false || preg_match('/[\x00-\x1f\x7f\/\\\\.]/', $name)) {
+        throw new Exception("Invalid database name");
+    }
+    if (in_array(strtolower($name), ['information_schema', 'mysql', 'performance_schema', 'sys'], true)) {
+        throw new Exception("System database '$name' cannot be dropped");
+    }
+    return "`$name`";
 }
 function sanitizeColumnType(string $type): string {
     $allowedTypes = ['INT', 'VARCHAR', 'TEXT', 'DATE', 'DATETIME', 'TIMESTAMP', 'TINYINT', 'SMALLINT', 'BIGINT', 'DECIMAL', 'FLOAT', 'DOUBLE', 'CHAR', 'BLOB'];

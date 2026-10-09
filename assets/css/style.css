@@ -1038,3 +1038,51 @@ html, body {
 .tour-btn-ghost { background: var(--surface-3); color: var(--text-muted); border: 1px solid var(--border); }
 .tour-btn-ghost:hover { background: var(--surface-4); color: var(--text-base); }
 
+
+/* ── Per-element loading state (see modules/loading.js) ── */
+.ft-loading {
+    position: relative;
+    pointer-events: none;
+    opacity: .6;
+}
+.ft-loading::after {
+    content: '';
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    width: 14px;
+    height: 14px;
+    margin-top: -7px;
+    border: 2px solid currentColor;
+    border-right-color: transparent;
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+}
+.ft-loading-overlay { min-height: 48px; }
+.ft-loading-overlay::after {
+    right: auto;
+    left: 50%;
+    margin-left: -14px;
+    margin-top: -14px;
+    width: 28px;
+    height: 28px;
+    border-width: 3px;
+}
+tr.ft-loading { position: static; opacity: 1; }
+tr.ft-loading > td { opacity: .45; }
+tr.ft-loading > td:first-child { position: relative; }
+tr.ft-loading > td:first-child::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 14px;
+    height: 14px;
+    margin: -7px 0 0 -7px;
+    border: 2px solid #60a5fa;
+    border-right-color: transparent;
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+    opacity: 1;
+}
+tr.ft-loading::after { display: none; }
