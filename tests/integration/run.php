@@ -199,10 +199,85 @@ check('system database cannot be dropped', !ok($r) && strpos(err($r), 'System da
 $r = api('mysql_drop_database', ['db_name' => 'ft_it_imp', 'confirm_name' => 'ft_it_imp']);
 check('drop database with matching confirm_name', ok($r) && !in_array('ft_it_imp', $r['json']['databases']), $r['text']);
 
+
+// ---- file manager (FTP / SFTP) ----
+function testFiles(string $label, string $proto, string $host, int $port, string $user, string $pass): void {
+    global $base;
+    $r = api('connect', ['protocol' => $proto, 'host' => $host, 'port' => $port, 'user' => $user, 'password' => $pass, 'dir' => '/']);
+    check("[$label] connect", ok($r), $r['text']);
+    if (!ok($r)) return;
+    check("[$label] bad password rejected", !ok(api('connect', ['protocol' => $proto, 'host' => $host, 'port' => $port, 'user' => $user, 'password' => 'nope'])));
+    // reconnect with the right credentials (the failed attempt must not replace the good session)
+    api('connect', ['protocol' => $proto, 'host' => $host, 'port' => $port, 'user' => $user, 'password' => $pass, 'dir' => '/']);
+    $root = '/ft_it_' . $proto . '_' . getmypid();
+    $upload = function (string $dir, string $name, string $content, string $rel = '') use ($base) {
+        $tmp = tempnam(sys_get_temp_dir(), 'up');
+        file_put_contents($tmp, $content);
+        $fields = ['dir' => $dir, 'files[]' => new CURLFile($tmp, 'text/plain', $name)];
+        if ($rel !== '') $fields['rel_dir'] = $rel;
+        return http('POST', "$base/api/upload", $fields, [], false);
+    };
+    $names = fn(array $r) => array_column($r['json']['files'] ?? [], 'name');
+
+    check("[$label] create_dir", ok(api('create_dir', ['dir' => $root])));
+    $r = $upload($root, 'a.txt', "hello\nworld\n");
+    check("[$label] upload file", ok($r), $r['text']);
+    $r = $upload($root, 'b.bin', random_bytes(300000), 'sub/deep');
+    check("[$label] upload with rel_dir creates folders (binary, 300 KB)", ok($r), $r['text']);
+    check("[$label] upload rel_dir '..' refused", !ok($upload($root, 'x.txt', 'x', '../escape')));
+    check("[$label] upload keeps only the base name", ok($upload($root, '../../evil.txt', 'e')) && in_array('evil.txt', $names(api('list', ['dir' => $root]))));
+    $r = api('list', ['dir' => $root]);
+    check("[$label] list shows folders first, then files", ok($r) && $names($r) === ['sub', 'a.txt', 'evil.txt'], json_encode($names($r)));
+    $r = api('read_file', ['file' => "$root/a.txt"]);
+    check("[$label] read_file", ok($r) && $r['json']['content'] === "hello\nworld\n");
+    check("[$label] write_file overwrite", ok(api('write_file', ['file' => "$root/a.txt", 'content' => 'changed'])) && api('read_file', ['file' => "$root/a.txt"])['json']['content'] === 'changed');
+    $dl = http('GET', "$base/api/download_file?file=" . rawurlencode("$root/sub/deep/b.bin"));
+    check("[$label] download_file returns the uploaded bytes (size)", $dl['status'] === 200 && strlen($dl['text']) === 300000);
+
+    check("[$label] rename", ok(api('rename', ['old' => "$root/a.txt", 'new' => "$root/renamed.txt"])));
+    check("[$label] create 2nd folder", ok(api('create_dir', ['dir' => "$root/dest"])));
+    $r = api('move_many', ['sources' => ["$root/renamed.txt", "$root/evil.txt"], 'dest' => "$root/dest"]);
+    check("[$label] move_many moves both", ok($r) && $r['json']['moved'] === 2 && $names(api('list', ['dir' => "$root/dest"])) === ['evil.txt', 'renamed.txt'], $r['text']);
+    $r = api('move_many', ['sources' => ["$root/sub"], 'dest' => "$root/sub/deep"]);
+    check("[$label] move folder into itself refused", !ok($r), $r['text']);
+
+    $r = api('search', ['dir' => $root, 'query' => 'B.BI']);
+    check("[$label] search is recursive + case-insensitive", ok($r) && count($r['json']['results']) === 1 && $r['json']['results'][0]['path'] === "$root/sub/deep/b.bin", $r['text']);
+    $r = api('search', ['dir' => '/', 'query' => 'ft_it_' . $proto]);
+    check("[$label] search finds folders too", ok($r) && $r['json']['results'][0]['isDir'] === true);
+    check("[$label] empty search returns nothing", ok($r = api('search', ['dir' => '/', 'query' => ''])) && $r['json']['results'] === []);
+
+    $z = http('POST', "$base/api/download_zip", ['items' => [['path' => $root, 'isDir' => true]]]);
+    check("[$label] zip download headers", $z['status'] === 200 && stripos($z['headers'], 'application/zip') !== false && preg_match('/filename="ft_it_/', $z['headers']) === 1, $z['headers']);
+    $zf = tempnam(sys_get_temp_dir(), 'z') . '.zip';
+    file_put_contents($zf, $z['text']);
+    $zip = new ZipArchive();
+    $opened = $zip->open($zf) === true;
+    $entries = [];
+    for ($i = 0; $opened && $i < $zip->numFiles; $i++) $entries[] = $zip->getNameIndex($i);
+    $base1 = basename($root);
+    check("[$label] zip contains the folder tree", $opened && in_array("$base1/dest/renamed.txt", $entries) && in_array("$base1/sub/deep/b.bin", $entries), json_encode($entries));
+    check("[$label] zip file content intact", $opened && $zip->getFromName("$base1/dest/renamed.txt") === 'changed' && strlen($zip->getFromName("$base1/sub/deep/b.bin")) === 300000);
+    $z2 = http('POST', "$base/api/download_zip", ['items' => [['path' => "$root/dest/renamed.txt", 'isDir' => false], ['path' => "$root/dest/evil.txt", 'isDir' => false]]]);
+    check("[$label] zip of multiple files", $z2['status'] === 200 && strncmp($z2['text'], 'PK', 2) === 0);
+    check("[$label] zip of missing path -> clean JSON error", !ok(http('POST', "$base/api/download_zip", ['items' => [['path' => "$root/nope", 'isDir' => false]]])));
+
+    $r = api('delete', ['path' => "$root/dest/evil.txt", 'isDir' => false]);
+    check("[$label] delete file", ok($r));
+    $r = api('delete_many', ['items' => [['path' => "$root/dest/renamed.txt", 'isDir' => false], ['path' => "$root/missing", 'isDir' => false], ['path' => '/', 'isDir' => true]]]);
+    check("[$label] delete_many reports partial failures, refuses root", ok($r) && $r['json']['deleted'] === 1 && count($r['json']['errors']) === 2, $r['text']);
+    $r = api('delete', ['path' => $root, 'isDir' => true]);
+    check("[$label] delete non-empty directory recursively", ok($r), $r['text']);
+    check("[$label] directory is really gone", !in_array(basename($root), $names(api('list', ['dir' => '/']))));
+    check("[$label] list of missing directory -> error", !ok(api('list', ['dir' => $root])));
+}
+if (getenv('FT_SFTP_PORT')) testFiles('sftp', 'sftp', '127.0.0.1', (int)getenv('FT_SFTP_PORT'), getenv('FT_FILE_USER'), getenv('FT_FILE_PASS'));
+if (getenv('FT_FTP_PORT')) testFiles('ftp', 'ftp', '127.0.0.1', (int)getenv('FT_FTP_PORT'), getenv('FT_FILE_USER'), getenv('FT_FILE_PASS'));
+
 // audit trail
 $r = api('auth_audit_list', ['limit' => 200]);
 $actions = array_column($r['json']['entries'] ?? [], 'action');
-foreach (['auth_login_failed', 'auth_login', 'mysql_create_database', 'mysql_create_table', 'mysql_export', 'mysql_import', 'mysql_drop_columns', 'mysql_truncate_table', 'mysql_drop_table', 'mysql_drop_database', 'mysql_delete_rows', 'mysql_run_query'] as $a) {
+foreach (['auth_login_failed', 'ftp_delete', 'ftp_move', 'ftp_download_zip', 'auth_login', 'mysql_create_database', 'mysql_create_table', 'mysql_export', 'mysql_import', 'mysql_drop_columns', 'mysql_truncate_table', 'mysql_drop_table', 'mysql_drop_database', 'mysql_delete_rows', 'mysql_run_query'] as $a) {
     check("audit log has $a", in_array($a, $actions, true));
 }
 check('audit log does not log plain SELECT queries', count(array_filter($r['json']['entries'], fn($e) => $e['action'] === 'mysql_run_query' && stripos($e['detail'] ?? '', 'SELECT') === 0)) === 0);

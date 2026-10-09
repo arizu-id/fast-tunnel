@@ -2,6 +2,7 @@
 namespace App;
 use Exception;
 class FtpClient {
+    use RemoteFsTools;
     private $connection;
     private string $host;
     private int $port;
@@ -137,10 +138,19 @@ class FtpClient {
             return $this->parseMlsd($list, $directory);
         }
         $rawList = @ftp_rawlist($this->connection, $directory);
-        if ($rawList === false) {
+        if ($rawList === false || ($rawList === [] && !$this->directoryExists($directory))) {
              throw new Exception("Failed to list directory: $directory");
         }
         return $this->parseRawList($rawList, $directory);
+    }
+    /** Some servers answer LIST of a missing directory with an empty listing instead of an error. */
+    private function directoryExists(string $directory): bool {
+        $cwd = @ftp_pwd($this->connection);
+        $ok = @ftp_chdir($this->connection, $directory);
+        if ($ok && $cwd !== false) {
+            @ftp_chdir($this->connection, $cwd);
+        }
+        return (bool)$ok;
     }
     private function parseMlsd(array $list, string $path): array {
         $items = [];
@@ -166,29 +176,35 @@ class FtpClient {
         return $items;
     }
     private function parseRawList(array $rawList, string $path): array {
-          $items = [];
-          foreach ($rawList as $line) {
-              if (preg_match('/^([d\-])(?:[rwx\-]{9})\s+\d+\s+\S+\s+\S+\s+(\d+)\s+(.+?)\s+(.+)$/', $line, $matches)) {
-                  $isDir = $matches[1] === 'd';
-                  $size = (int)$matches[2];
-                  $name = $matches[4];
-                  if ($name === '.' || $name === '..') continue;
-                  $items[] = [
-                     'name' => $name,
-                     'path' => rtrim($path, '/') . '/' . $name,
-                     'isDir' => $isDir,
-                     'size' => $isDir ? 0 : $size,
-                     'modify' => $matches[3]
-                 ];
-              }
-          }
+        $items = [];
+        // Unix "ls -l" style: perms, links, owner, group, size, date (Mon DD HH:MM | Mon DD YYYY | YYYY-MM-DD HH:MM), name
+        $unix = '/^([dl\-])[rwxsStT\-]{9}[+@.]?\s+\d+\s+\S+\s+\S+\s+(\d+)\s+'
+            . '((?:[A-Za-z]{3}\s+\d{1,2}\s+(?:\d{4}|\d{1,2}:\d{2}))|(?:\d{4}-\d{2}-\d{2}\s+\d{1,2}:\d{2}))\s+(.+)$/';
+        foreach ($rawList as $line) {
+            if (!preg_match($unix, rtrim($line, "\r\n"), $matches)) {
+                continue;
+            }
+            $isDir = $matches[1] === 'd';
+            $name = $matches[4];
+            if ($matches[1] === 'l' && ($arrow = strpos($name, ' -> ')) !== false) {
+                $name = substr($name, 0, $arrow);
+            }
+            if ($name === '.' || $name === '..') continue;
+            $items[] = [
+                'name' => $name,
+                'path' => rtrim($path, '/') . '/' . $name,
+                'isDir' => $isDir,
+                'size' => $isDir ? 0 : (int)$matches[2],
+                'modify' => $matches[3]
+            ];
+        }
         usort($items, function($a, $b) {
             if ($a['isDir'] === $b['isDir']) {
                 return strcasecmp($a['name'], $b['name']);
             }
             return $a['isDir'] ? -1 : 1;
         });
-         return $items;
+        return $items;
     }
     public function readFile(string $remoteFile): string {
         if ($this->useProxy) {
@@ -243,6 +259,48 @@ class FtpClient {
             throw new Exception("Failed to upload file: $remoteFile");
         }
         return true;
+    }
+    public function uploadFile(string $localFile, string $remoteFile): bool {
+        if ($this->useProxy) {
+            $path = '/' . ltrim($remoteFile, '/');
+            $ch = $this->initCurl("ftp://{$this->host}:{$this->port}" . $path);
+            $fp = fopen($localFile, 'rb');
+            curl_setopt($ch, CURLOPT_UPLOAD, true);
+            curl_setopt($ch, CURLOPT_INFILE, $fp);
+            curl_setopt($ch, CURLOPT_INFILESIZE, filesize($localFile));
+            $res = curl_exec($ch);
+            $err = curl_errno($ch) ? curl_error($ch) : '';
+            curl_close($ch);
+            fclose($fp);
+            if ($res === false) {
+                throw new Exception("Failed to upload file: $err");
+            }
+            return true;
+        }
+        if (!@ftp_put($this->connection, $remoteFile, $localFile, FTP_BINARY)) {
+            throw new Exception("Failed to upload file: $remoteFile");
+        }
+        return true;
+    }
+    public function downloadToFile(string $remoteFile, string $localFile): void {
+        if ($this->useProxy) {
+            $path = '/' . ltrim($remoteFile, '/');
+            $ch = $this->initCurl("ftp://{$this->host}:{$this->port}" . $path);
+            $fp = fopen($localFile, 'wb');
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, false);
+            curl_setopt($ch, CURLOPT_FILE, $fp);
+            $res = curl_exec($ch);
+            $err = curl_errno($ch) ? curl_error($ch) : '';
+            curl_close($ch);
+            fclose($fp);
+            if ($res === false) {
+                throw new Exception("Failed to download file: $err");
+            }
+            return;
+        }
+        if (!@ftp_get($this->connection, $localFile, $remoteFile, FTP_BINARY)) {
+            throw new Exception("Failed to download file: $remoteFile");
+        }
     }
     public function createDirectory(string $directory): bool {
         if ($this->useProxy) {

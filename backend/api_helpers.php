@@ -59,7 +59,10 @@ function loadPluginBackends(): void {
         }
     }
 }
-function getConnectedFtp(): \App\FtpClient {
+/**
+ * Connected file client for the current session: \App\FtpClient or \App\SftpClient (same API).
+ */
+function getConnectedFtp() {
     static $cached = null;
     if ($cached !== null) {
         return $cached;
@@ -68,6 +71,11 @@ function getConnectedFtp(): \App\FtpClient {
         throw new Exception("Not connected.");
     }
     $auth = $_SESSION['ftp_auth'];
+    if (($auth['protocol'] ?? 'ftp') === 'sftp') {
+        $sftp = new \App\SftpClient($auth['host'], (int)$auth['port'], $auth['user'], Auth::decrypt($auth['password_enc']));
+        $sftp->connect();
+        return $cached = $sftp;
+    }
     $use_proxy = (bool)($auth['use_proxy'] ?? false) && isPluginActive('proxy');
     $ftp = new \App\FtpClient(
         $auth['host'],
@@ -187,6 +195,8 @@ $sql=trim((string)($data['sql']??''));
 if(!preg_match('/^(select|show|describe|desc|explain)\\b/i',$sql))Audit::log($action,$db,$sql);
 break;
 case'delete':Audit::log('ftp_delete',(string)($data['path']??''));break;
+case'delete_many':Audit::log('ftp_delete',(string)($data['items'][0]['path']??''),count((array)($data['items']??[])).' item(s)');break;
+case'move_many':Audit::log('ftp_move',(string)($data['dest']??''),count((array)($data['sources']??[])).' item(s)');break;
 case'sessions_delete':Audit::log($action,(string)($data['id']??''));break;
 case'sessions_import':Audit::log($action,'',count((array)($data['sessions']??[])).' session(s)');break;
 case'delete_plugin':Audit::log($action,(string)($data['slug']??''));break;

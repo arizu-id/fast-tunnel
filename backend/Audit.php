@@ -4,21 +4,8 @@
  * plugin changes). Failures to write never break the request.
  */
 class Audit{
-private const DDL="CREATE TABLE IF NOT EXISTS audit_log(
-id BIGINT AUTO_INCREMENT PRIMARY KEY,
-user_id INT NULL,
-username VARCHAR(50) NULL,
-ip_address VARCHAR(45) NOT NULL,
-action VARCHAR(64) NOT NULL,
-target VARCHAR(255) NULL,
-detail TEXT NULL,
-created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-INDEX idx_created(created_at)
-) ENGINE=InnoDB";
 public static function ensure():void{
-if(!empty($_SESSION['audit_ready']))return;
-Auth::db()->exec(self::DDL);
-$_SESSION['audit_ready']=true;
+Migrations::ensure();
 }
 public static function log(string $action,string $target='',string $detail='',?string $username=null):void{
 try{

@@ -9,7 +9,10 @@ require_once __DIR__.'/backend/SessionStore.php';
 require_once __DIR__.'/backend/Audit.php';
 Auth::boot();
 require_once __DIR__.'/vendor/autoload.php';
+require_once __DIR__.'/backend/RemoteFsTools.php';
 require_once __DIR__.'/backend/FtpClient.php';
+require_once __DIR__.'/backend/SftpClient.php';
+require_once __DIR__.'/backend/Migrations.php';
 require_once __DIR__.'/backend/MysqlClient.php';
 require_once __DIR__.'/backend/SqlTools.php';
 require_once __DIR__.'/backend/SshClient.php';
@@ -25,11 +28,12 @@ $publicActions=['auth_login','auth_check','auth_logout'];
 $csrfExempt=['auth_login','auth_check','auth_logout','ssh_stream_output'];
 if(!in_array($action,$publicActions)){
 Auth::requireApiAuth();
+Migrations::ensure();
 }
 if($method==='POST'&&!in_array($action,$csrfExempt)){
 Auth::validateCsrf();
 }
-if($action!=='ssh_stream_output'&&$action!=='mysql_export'){
+if(!in_array($action,['ssh_stream_output','mysql_export','download_zip'],true)){
 header('Content-Type: application/json');
 }
 try{
