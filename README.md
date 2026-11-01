@@ -4,14 +4,14 @@
 
 ### *The Ultimate Self-Hosted Web Client for Modern Server Management*
 
-[![PHP Version](https://img.shields.io/badge/PHP-7.4%20%7C%208.0%20%7C%208.1%20%7C%208.2%20%7C%208.3-777BB4?style=for-the-badge&logo=php&logoColor=white)](https://php.net)
+[![PHP Version](https://img.shields.io/badge/PHP-8.0%20%7C%208.1%20%7C%208.2%20%7C%208.3-777BB4?style=for-the-badge&logo=php&logoColor=white)](https://php.net)
 [![Security](https://img.shields.io/badge/Security-AES--256--GCM-10b981?style=for-the-badge&logo=letsencrypt&logoColor=white)](SECURITY.md)
 [![Release](https://img.shields.io/github/v/release/arizu-id/fast-tunnel?style=for-the-badge&color=3b82f6&logo=github)](https://github.com/arizu-id/fast-tunnel/releases)
 [![Docker Support](https://img.shields.io/badge/Docker-Ready-2496ED?style=for-the-badge&logo=docker&logoColor=white)](docker-compose.yml)
 [![License](https://img.shields.io/badge/License-MIT-f59e0b?style=for-the-badge)](LICENSE)
 
 <p align="center">
-  A sleek, responsive, and secure browser-based workspace consolidating <b>FileZilla</b>, <b>phpMyAdmin</b>, and <b>PuTTY</b> into a single lightweight PHP application — zero desktop software required.
+  A sleek, responsive, and secure browser-based workspace consolidating <b>FileZilla</b>, <b>phpMyAdmin</b>, and <b>PuTTY</b> into a single lightweight PHP application, with zero desktop software required.
 </p>
 
 <p align="center">
@@ -44,7 +44,7 @@ Traditional server administration relies on juggling multiple heavy desktop clie
 │ • Context Menu   │ • Schema Inspector   │ • ANSI True-Color Support    │
 ├──────────────────┴──────────────────────┴──────────────────────────────┤
 │ 🔐 Zero-Plaintext Credential Storage (AES-256-GCM Vault)               │
-│ 🧩 Extensible Modular Plugin Engine (ZIP Drag & Drop Installer)        │
+│ 🧩 Extensible Modular Plugin Engine (ZIP Package Installer)            │
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -54,11 +54,11 @@ Traditional server administration relies on juggling multiple heavy desktop clie
 
 | Module | Features & Highlights | Technology Stack |
 |---|---|---|
-| 📁 **FTP File Manager** | • Drag-and-drop file & folder upload<br>• Right-click context actions (*Rename, Delete, New File/Folder, Download*)<br>• Embedded **Monaco Code Editor** (VS Code engine) with `Ctrl+S` instant save<br>• Fast directory tree traversal & search | Monaco Editor, jQuery ContextMenu, PHP Streams |
-| 🗄️ **MySQL Client** | • Visual Data Grid with pagination and limit offsets<br>• Inline row updating and batch row deletion<br>• Raw SQL query runner with syntax highlighting<br>• Table schema designer (Add/Edit/Drop columns, indexes) | PDO MySQL / MySQLi Fallback |
+| 📁 **FTP File Manager** | • Drag-and-drop file upload, plus drag-to-move for files and folders<br>• Right-click context actions (*Rename, Delete, New File/Folder, Upload, Refresh*)<br>• Embedded **Monaco Code Editor** (VS Code engine) with `Ctrl+S` instant save<br>• Fast lazy-loading directory tree | Monaco Editor, jQuery ContextMenu, PHP Streams |
+| 🗄️ **MySQL Client** | • Visual Data Grid with pagination and limit offsets<br>• Row editor and batch row deletion (tables with a single-column primary key)<br>• Raw SQL query runner with an `EXPLAIN` shortcut<br>• Table schema designer (Add/Edit/Drop columns, indexes) | PDO MySQL / MySQLi Fallback |
 | 💻 **SSH Web Terminal** | • Full interactive PTY terminal emulator with ANSI color support<br>• High-performance real-time streaming via **Server-Sent Events (SSE)**<br>• Dynamic window resizing (`cols` × `rows`)<br>• Low CPU idle consumption via adaptive polling | `xterm.js`, `phpseclib3` PTY Daemon |
 | 🔐 **Session Vault** | • Securely store multiple FTP, SSH, and MySQL profiles<br>• Encrypted JSON profile export and import with PBKDF2 passphrases<br>• One-click instant connection launch | OpenSSL `AES-256-GCM`, PBKDF2 |
-| 🧩 **Plugin Engine** | • Drag-and-drop ZIP package installer with auto-discovery<br>• Sandbox execution preventing direct webshell execution<br>• Pre-built plugin hooks for UI themes, ping latency, and proxy tools | Modular PHP / JS Hooks Architecture |
+| 🧩 **Plugin Engine** | • ZIP package installer (*Import Plugin* button) with auto-discovery<br>• Sandbox execution preventing direct webshell execution<br>• Pre-built plugin hooks for UI themes, ping latency, and proxy tools | Modular PHP / JS Hooks Architecture |
 
 ---
 
@@ -85,7 +85,7 @@ flowchart TD
 
     subgraph Targets ["Remote Infrastructure"]
         J[(Local App DB)]
-        K[Remote FTP / SFTP]
+        K[Remote FTP Server]
         L[(Remote MySQL DB)]
         M[Remote SSH Server]
     end
@@ -98,7 +98,7 @@ flowchart TD
     D --> F <--> J
     D --> G <--> K
     D --> H <--> L
-    D --> I <-->|IPC Pipes + phpseclib3| M
+    D --> I <-->|File-based IPC + phpseclib3| M
 ```
 
 > 📖 *For a deep dive into streaming mechanics and encryption flows, read [`ARCHITECTURE.md`](ARCHITECTURE.md).*
@@ -109,12 +109,12 @@ flowchart TD
 
 Security is the core foundation of Fast Tunnel's design:
 
-- 🔒 **Zero-Plaintext at Rest**: Remote passwords, hostnames, and private keys are encrypted using **AES-256-GCM** before database storage. Credentials are only decrypted *in-memory* during active operations.
+- 🔒 **Zero-Plaintext at Rest**: Remote passwords, hostnames, usernames, and database names are encrypted using **AES-256-GCM** before database storage. Credentials are only decrypted for the signed-in user, when saved connections are loaded into the workspace or used.
 - 🔑 **Unique Cryptographic Keys**: Every installation generates a cryptographically random 256-bit key (`ENCRYPTION_KEY`).
 - 🛡️ **CSRF Defense**: All state-changing requests enforce strict `X-CSRF-Token` headers.
 - ⏱️ **Brute-Force Rate Limiting**: Authentication endpoints enforce an automated sliding-window rate limit by IP address.
 - 🧱 **Zip-Slip & CWE-434 Hardening**: Plugin ZIP uploads perform canonical `realpath` validation and strict file extension filtering.
-- 🚫 **Web Execution Lockdown**: Direct HTTP access to PHP files in `plugins/`, `backend/`, `vendor/`, and `temp_ssh/` is prohibited via `.htaccess` and Nginx rules.
+- 🚫 **Web Execution Lockdown**: Direct HTTP access to PHP files in `plugins/`, `backend/`, `vendor/`, and `temp_ssh/` is prohibited via `.htaccess` rules (the Nginx sample covers `backend/`, `plugins/`, and `temp_ssh/`).
 
 > 🔒 *Read our full security policy and disclosure guidelines in [`SECURITY.md`](SECURITY.md).*
 
@@ -143,7 +143,7 @@ docker-compose up -d --build
 ### Option 2: Apache / PHP-FPM Web Server
 
 ```bash
-# 1. Clone the repository into your web root
+# 1. Clone the repository
 cd /var/www/html
 git clone https://github.com/arizu-id/fast-tunnel.git
 cd fast-tunnel
@@ -151,16 +151,21 @@ cd fast-tunnel
 # 2. Install PHP dependencies
 composer install --optimize-autoloader
 
-# 3. Set proper directory permissions
+# 3. Set proper directory permissions (the installer writes config.php to the project root)
 chmod -R 775 temp_ssh/ plugins/
+chown www-data:www-data .
 chown -R www-data:www-data temp_ssh/ plugins/
 
-# 4. Open Guided Web Installer
-# Navigate to: http://your-server-ip/fast-tunnel/install/
+# 4. Point the DocumentRoot of a domain or subdomain at /var/www/html/fast-tunnel
+#    (AllowOverride All, mod_rewrite enabled). Fast Tunnel calls root paths
+#    such as /api/ and /login, so it cannot run from a subfolder.
+
+# 5. Open Guided Web Installer
+# Navigate to: http://your-domain/install/
 ```
 
 Follow the 3-step installer wizard:
-1. **Step 1**: System requirements & PHP extensions check (`pdo_mysql`, `openssl`, `curl`, `zip`).
+1. **Step 1**: System requirements check (PHP 8.0 or newer) & PHP extensions check (`pdo_mysql`, `openssl`, `curl`, `ftp`).
 2. **Step 2**: MySQL database configuration.
 3. **Step 3**: Admin user account creation & automated encryption key generation.
 
@@ -168,7 +173,7 @@ Follow the 3-step installer wizard:
 
 ### Option 3: Nginx + PHP-FPM
 
-For Nginx, copy and customize our production-tested configuration template:
+For Nginx, copy and customize our configuration template (set `server_name` to your domain or subdomain; `root` must point at the project folder):
 
 ```bash
 sudo cp nginx.sample.conf /etc/nginx/sites-available/fast-tunnel
@@ -177,6 +182,8 @@ sudo systemctl reload nginx
 ```
 
 > ⚠️ **Nginx SSE Tip**: Ensure `fastcgi_buffering off;` and `proxy_buffering off;` are enabled so terminal Server-Sent Events stream without buffering delay.
+
+> ⚠️ **Nginx Rewrite Tip**: The template does not include the pretty URLs from `.htaccess`. Add `rewrite ^/api/([^/]+)$ /api.php?action=$1 last;`, `rewrite ^/login$ /login.php last;` and `rewrite ^/logout$ /login.php?action=logout last;` to the `server` block, otherwise API calls and the login page fall through to `index.php`.
 
 ---
 
@@ -239,7 +246,7 @@ Contributions, issues, and feature requests are very welcome!
 
 ## 📄 License
 
-This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details. Free for personal and commercial use.
+This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) file for details. Free for personal and commercial use.
 
 ---
 

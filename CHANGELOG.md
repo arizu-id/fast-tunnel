@@ -26,7 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [1.0.1] - 2025-02-15
+## [1.0.1] - 2026-10-06
 
 ### 🔒 Security
 - **Plugin Installer Hardening**: Resolved CWE-434 arbitrary file upload & Zip-Slip path traversal vulnerability in plugin upload mechanism (Reported via VulDB #990501).
@@ -44,7 +44,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [1.0.0] - 2025-01-10
+## [1.0.0] - 2026-05-23
 
 ### 🚀 Initial Release
 - **All-in-One Self-Hosted Workspace**: Seamless unified web interface consolidating FTP, MySQL, and SSH clients.
