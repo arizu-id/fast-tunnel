@@ -37,7 +37,7 @@
         "ext-json": "*",
         "ext-curl": "*",
         "ext-zip": "*",
-        "phpseclib/phpseclib": "^3.0"
+        "phpseclib/phpseclib": "^4.0"
     },
     "config": {
         "optimize-autoloader": true,
